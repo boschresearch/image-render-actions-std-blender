@@ -44,7 +44,6 @@ import anycam
 
 
 class CRenderStandard(CRender):
-
     ##############################################################
     def __init__(self, *, xPrjCfg, dicCfg):
         self.dicRenderFramesTypes: dict = None
@@ -54,7 +53,6 @@ class CRenderStandard(CRender):
 
     ##############################################################
     def _EvalRenderFramesOutTypes(self):
-
         self.dicRenderFramesTypes = {}
 
         if self.bIsInitialized is False:
@@ -171,7 +169,6 @@ class CRenderStandard(CRender):
     ##############################################################
     @logFunctionCall
     def Process(self):
-
         if self.bIsInitialized is False:
             raise CAnyError_Message(sMsg="Rendering is not initialized")
         # endif
@@ -208,10 +205,18 @@ class CRenderStandard(CRender):
 
             # Loop over all render outputs in config
             for iOutIdx, dicFiles in dicRenderTypes.items():
-
                 dicRndOut = self.lRndOutTypes[iOutIdx]
                 xRndOutType: CRenderOutputType = self._GetRenderOutType(dicRndOut, NsConfigDTI.sDtiRenderOutputAll)
                 self.Print("Render output type: {}".format(dicRndOut.get("sDTI")))
+
+                ######################################################
+                # Apply modifier of render output type
+                xCfgRndMod = None
+                lRndMod = dicRndOut.get("lModifier")
+                if lRndMod is not None:
+                    xCfgRndMod = CConfigModifyList(lRndMod)
+                    xCfgRndMod.Apply()
+                # endif
 
                 lOutputFilenames = dicFiles["lOutputFilenames"]
                 lOutNewFilenames = dicFiles["lOutNewFilenames"]
@@ -249,15 +254,6 @@ class CRenderStandard(CRender):
                     # endfor
                     # anycam.ac_props_camset._SelCamSetEl(self=None, context=bpy.context)
                 # endif use openGL and activate the correct camera
-
-                ######################################################
-                # Apply modifier of render output type
-                xCfgRndMod = None
-                lRndMod = dicRndOut.get("lModifier")
-                if lRndMod is not None:
-                    xCfgRndMod = CConfigModifyList(lRndMod)
-                    xCfgRndMod.Apply()
-                # endif
 
                 ######################################################
                 # Import of point clouds that vary per frame
@@ -327,7 +323,6 @@ class CRenderStandard(CRender):
 
                 ######################################################
                 if xRndOutType.sMainType != NsMainTypesRenderOut.blend:
-
                     # If pos3d ground truth was rendered, some offset was applied for rendering.
                     # Transform the rendered image back to absolute 3d world coordinates.
                     # Furthermore, if the scene was transformed to the camera frame, then
