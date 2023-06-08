@@ -52,9 +52,9 @@ from .object_std import _DoImportObjectObj
 from anyblend import tools as anytools
 from anyblend import viewlayer as anyvl
 
+
 ############################################################################################
 def CreateCollections(_dicGenCln, **kwargs):
-
     dicClnObj = defaultdict(list)
 
     lCollections = _dicGenCln.get("lCollections")
@@ -98,7 +98,6 @@ def CreateCollections(_dicGenCln, **kwargs):
 
 ############################################################################################
 def LoadCollections(_dicCln, **kwargs):
-
     dicClnObj = defaultdict(list)
     dicVars = kwargs.get("dicVars", {})
 
@@ -155,14 +154,25 @@ def LoadCollections(_dicCln, **kwargs):
         # endfor
     # endwith
 
-    for clnImport, sImportClnName in zip(data_to.collections, lImportClnNames):
+    # Rename imported collections to dummy names,
+    # to avoid potential name clash problems later on
+    lNewImportClnNames = [f"_cathy_import_{x}" for x in lImportClnNames]
+    for clnImport, sNewImportClnName in zip(data_to.collections, lNewImportClnNames):
+        clnImport.name = sNewImportClnName
+    # endfor
 
+    for clnImport, sImportClnName in zip(data_to.collections, lImportClnNames):
         dicTrgClnCfg = mCollections[sImportClnName]
         lTrgClnTree = dicTrgClnCfg.get("lCollectionHierarchy")
         if lTrgClnTree is None:
             raise RuntimeError("No target collection hierarchy given for source collection '{0}'".format(sSrcClnName))
         # endif
         sTrgClnName = ".".join(lTrgClnTree)
+
+        # Scale object by import scale and apply the scale
+        for objX in clnImport.objects:
+            anyblend.object.ScaleObject(objX, fImportScale, _bApply=True)
+        # endfor
 
         # print(f"Children of {clnImport.name}")
         # for clnX in clnImport.children:
@@ -176,8 +186,6 @@ def LoadCollections(_dicCln, **kwargs):
             for objX in clnImport.objects:
                 clnImport.objects.unlink(objX)
                 clnTrg.objects.link(objX)
-                # Scale object by import scale and apply the scale
-                anyblend.object.ScaleObject(objX, fImportScale, _bApply=True)
             # endif
 
             for clnX in clnImport.children:
@@ -203,8 +211,15 @@ def LoadCollections(_dicCln, **kwargs):
             clnTrgParent.children.link(clnImport)
         else:
             # print(f"Just linking {clnImport.name}")
+            clnImport.name = sTrgClnName
             bpy.context.scene.collection.children.link(clnImport)
         # endif
+
+        # ### DEBUG ###
+        # lClnNames = [x.name for x in bpy.data.collections]
+        # lLayClnNames = [x.name for x in bpy.context.view_layer.layer_collection.children]
+        # pass
+        # #############
 
         # get collection modifier, if any
         lMods = dicTrgClnCfg.get("lModifiers")
@@ -239,7 +254,6 @@ def _CreatePerFolderHandler(
     _lRePathInclude: list[str] = [".+"],
     _lRePathExclude: Optional[list[str]] = None,
 ):
-
     lCrePathInclude: list[re.Pattern] = []
     for sRe in _lRePathInclude:
         try:
@@ -267,7 +281,6 @@ def _CreatePerFolderHandler(
     print(lCrePathExclude)
 
     def Handler(_pathTop: Path, _sType: str) -> bool:
-
         pathRel = _pathTop.relative_to(_pathMain)
         sPathRel = pathRel.as_posix()
 
@@ -351,7 +364,6 @@ def _CreatePerFolderHandler(
 
 ############################################################################################
 def ImportFolderTypeHierarchy(_dicCln, **kwargs):
-
     sPath: str = convert.DictElementToString(_dicCln, "sPath")
     pathTop: Path = anypath.MakeNormPath(Path(sPath).absolute())
 
