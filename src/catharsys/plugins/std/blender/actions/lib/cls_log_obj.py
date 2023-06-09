@@ -111,6 +111,9 @@ class CLogObj(CRender):
         # The actual list of objects to log
         dicLogObjects = self.dicLogObj.get("mObjects")
 
+        # Flag whether to write out the camera set configuration
+        bLogCameraSet = self.dicLogObj.get("bLogCameraSet", True)
+
         # Replace camera set related log config variables
         # dicLogVarData = {
         #     "ActiveCamera": sCameraName,
@@ -146,7 +149,7 @@ class CLogObj(CRender):
                 },
             )
 
-            if self.xCameraSet.IsValid():
+            if self.xCameraSet.IsValid() and bLogCameraSet is True:
                 self.xCameraSet.GetBlenderData()
                 sFpCamSet = os.path.join(self.sPathTrgMain, "CamSet_{0:04d}.yaml".format(self.iTargetFrame))
                 self.Print("Writing camera set to: {0}".format(sFpCamSet))
