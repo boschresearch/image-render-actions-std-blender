@@ -35,6 +35,7 @@ else:
 # endif
 import shutil
 import platform
+from pathlib import Path
 
 from anybase import convert, debug, config
 from anybase import assertion
@@ -49,6 +50,7 @@ import catharsys.util.lsf as cathlsf
 
 from catharsys.action.cmd.ws_launch import NsKeys as NsLaunchKeys
 
+from catharsys.config.cls_exec_lsf import CConfigExecLsf
 from catharsys.plugins.std.blender.config.cls_blender import CBlenderConfig
 from catharsys.plugins.std.blender.config.cls_exec_blender import CConfigExecBlender
 from catharsys.plugins.std.blender.config.cls_trial_blender import CConfigTrialBlender
@@ -56,6 +58,7 @@ from catharsys.plugins.std.blender.config.cls_trial_blender import CConfigTrialB
 from catharsys.decs.decorator_ep import EntryPoint
 from catharsys.decs.decorator_log import logFunctionCall
 from catharsys.util.cls_entrypoint_information import CEntrypointInformation
+
 
 #########################################################################################################
 @EntryPoint(CEntrypointInformation.EEntryType.EXE_PLUGIN)
@@ -101,18 +104,15 @@ def StartJob(*, xPrjCfg, dicExec, dicArgs):
             )
 
         elif xExec.sType == "lsf":
+            xLsf = CConfigExecLsf(dicExec)
+
             _LsfStartBlenderWithScript(
                 xBlenderCfg=xBlenderCfg,
                 pathBlenderFile=xBlender.pathBlenderFile,
                 pathJobConfig=pathJobConfig,
                 sJobName=sJobName,
                 sJobNameLong=sJobNameLong,
-                iJobMaxTime=xExec.iJobMaxTime,
-                iJobMemReqGb=xExec.iJobMemReqGb,
-                sJobQueue=xExec.sJobQueue,
-                lModules=xExec.lModules,
-                iGpuCores=xExec.iJobGpuCores,
-                bIsLsbGpuNewSyntax=xExec.bIsLsbGpuNewSyntax,
+                xLsfCfg=xLsf,
                 bPrintOutput=True,
             )
         else:
@@ -142,7 +142,6 @@ def StartJob(*, xPrjCfg, dicExec, dicArgs):
 # Start rendering with standard suprocess call
 @logFunctionCall
 def _StartBlenderWithScript(*, xBlenderCfg, pathBlenderFile, pathJobConfig, dicDebug=None, bPrintOutput=True):
-
     lScriptArgs = [pathJobConfig.as_posix()]
 
     if assertion.IsEnabled():
@@ -210,7 +209,6 @@ def _StartBlenderWithScript(*, xBlenderCfg, pathBlenderFile, pathJobConfig, dicD
 
     xScript = res.files(catharsys.plugins.std).joinpath("scripts").joinpath("run-action.py")
     with res.as_file(xScript) as pathScript:
-
         bOK, lStdOut = xBlenderCfg.ExecBlender(
             lArgs=["-noaudio"],
             sPathBlendFile=pathBlenderFile.as_posix(),
@@ -236,94 +234,20 @@ def _StartBlenderWithScript(*, xBlenderCfg, pathBlenderFile, pathJobConfig, dicD
 @logFunctionCall
 def _LsfStartBlenderWithScript(
     *,
-    xBlenderCfg,
-    pathBlenderFile,
-    pathJobConfig,
-    sJobName,
-    sJobNameLong,
-    iJobMaxTime,
-    iJobMemReqGb,
-    sJobQueue,
-    lModules,
-    iGpuCores,
-    bIsLsbGpuNewSyntax,
-    bPrintOutput=True,
+    xBlenderCfg: CBlenderConfig,
+    pathBlenderFile: Path,
+    pathJobConfig: Path,
+    sJobName: str,
+    sJobNameLong: str,
+    xLsfCfg: CConfigExecLsf,
+    bPrintOutput: bool = True,
 ):
-
     # Only supported on Linux platforms
     if platform.system() != "Linux":
         raise CAnyError_Message(sMsg="Unsupported system '{}' for LSF job creation".format(platform.system()))
     # endif
 
     sSetBlenderPath = "export PATH={0}:$PATH".format(xBlenderCfg.sPathBlender)
-
-    sLoadModules = " "
-    if len(lModules) > 0:
-        sLoadModules = "module load {0}".format(" ".join(lModules))
-    # endif
-
-    sBsub = """
-        #BSUB -J $sJobName
-        #BSUB -W $iJobMaxTime
-        #BSUB -o lsf/%J/stdout.txt
-        #BSUB -e lsf/%J/stderr.txt
-        $sSetJobQueue
-
-        # To use only RTX GPUs, use the following option
-        # #BSUB -m rtx
-        $sSetGpuCount
-        $sSetMemReq
-
-        mkdir lsf
-        mkdir lsf/$LSB_BATCH_JID
-
-        module purge
-        $sLoadModules
-
-        # Enable blender either by loading the corresponding module
-        # or by setting a path to a Blender install.
-        $sSetBlenderPath
-        # #BSUB -R \"rusage[mem=7GB]\"
-
-        echo
-        echo "Starting Standard rendering jobs..."
-        echo
-        echo "CUDA Visible Devices: " $CUDA_VISIBLE_DEVICES
-
-        export BLENDER_USER_CONFIG=$sBlenderUserConfig
-        echo Blender User Config: $BLENDER_USER_CONFIG
-
-        export BLENDER_USER_SCRIPTS=$sBlenderUserScripts
-        echo Blender User Scripts: $BLENDER_USER_SCRIPTS
-
-        echo "Blender file = $sBlenderFile"
-        echo "Script = $sScript"
-        echo "Pars = $sPars"
-
-        blender -noaudio -b $sBlenderFile -P $sScript -- $sPars
-    """
-
-    if sJobQueue is None:
-        sSetJobQueue = ""
-    else:
-        sSetJobQueue = "#BSUB -q {}".format(sJobQueue)
-    # endif
-
-    if iGpuCores > 0:
-        if bIsLsbGpuNewSyntax is False:
-            sSetGpuCount = '#BSUB -R "rusage[ngpus_excl_p={0}]"'.format(iGpuCores)
-        else:
-            sSetGpuCount = '#BSUB -gpu "num={0}/task:mode=exclusive_process"'.format(iGpuCores)
-        # endif
-    else:
-        sSetGpuCount = ""
-    # endif
-
-    if iJobMemReqGb == 0:
-        sSetMemReq = ""
-    else:
-        sSetMemReq = "#BSUB -M {}G".format(iJobMemReqGb)
-    # endif
 
     ##################################################################################
     # Copy execution script to permament place from resources
@@ -338,25 +262,42 @@ def _LsfStartBlenderWithScript(
     ##################################################################################
 
     sScriptArgs = pathJobConfig.as_posix()
+    sScriptFile = pathBlenderScript.as_posix()
+    sBlenderFile = pathBlenderFile.as_posix()
+    sBlenderUserConfig = xBlenderCfg.pathConfig.as_posix()
+    sBlenderUserScripts = xBlenderCfg.pathScripts.as_posix()
 
-    sB = (
-        sBsub.replace("$sJobName", sJobName)
-        .replace("$iJobMaxTime", str(iJobMaxTime))
-        .replace("$sSetJobQueue", sSetJobQueue)
-        .replace("$sSetMemReq", sSetMemReq)
-        .replace("$sSetBlenderPath", sSetBlenderPath)
-        .replace("$sLoadModules", sLoadModules)
-        .replace("$sSetGpuCount", sSetGpuCount)
-        .replace("$sBlenderFile", pathBlenderFile.as_posix())
-        .replace("$sScript", pathBlenderScript.as_posix())
-        .replace("$sPars", sScriptArgs)
-        .replace("$sBlenderUserConfig", xBlenderCfg.pathConfig.as_posix())
-        .replace("$sBlenderUserScripts", xBlenderCfg.pathScripts.as_posix())
-    )
+    sScript = f"""
+        mkdir lsf
+        mkdir lsf/$LSB_BATCH_JID
+
+        # Enable blender either by loading the corresponding module
+        # or by setting a path to a Blender install.
+        {sSetBlenderPath}
+
+        echo
+        echo "Starting Standard rendering jobs..."
+        echo
+        echo "CUDA Visible Devices: " $CUDA_VISIBLE_DEVICES
+
+        export BLENDER_USER_CONFIG={sBlenderUserConfig}
+        echo Blender User Config: $BLENDER_USER_CONFIG
+
+        export BLENDER_USER_SCRIPTS={sBlenderUserScripts}
+        echo Blender User Scripts: $BLENDER_USER_SCRIPTS
+
+        echo "Blender file = {sBlenderFile}"
+        echo "Script = {sScriptFile}"
+        echo "Pars = {sScriptArgs}"
+
+        blender -noaudio -b {sBlenderFile} -P {sScriptFile} -- {sScriptArgs}
+    """
 
     print("Submitting job '{0}'...".format(sJobNameLong))
 
-    bOk, lStdOut = cathlsf.ExecBSub(sCommands=sB, bDoPrint=True, bDoPrintOnError=True)
+    bOk, lStdOut = cathlsf.Execute(
+        _sJobName=sJobName, _xCfgExecLsf=xLsfCfg, _sScript=sScript, _bDoPrint=True, _bDoPrintOnError=True
+    )
 
     return {"bOK": bOk, "sOutput": "\n".join(lStdOut)}
 

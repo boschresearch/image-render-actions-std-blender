@@ -33,12 +33,6 @@ from anybase.cls_any_error import CAnyError_TaskMessage
 
 
 class CConfigExecBlender:
-
-    _dicData: dict = None
-    _dicBlender: dict = None
-    _lType: list = None
-    _pathBlender: Path = None
-
     def __init__(self, _dicExec):
         self._dicData = copy.deepcopy(_dicExec)
         dicResult = config.AssertConfigType(_dicExec, "/catharsys/exec/blender/*:2.1")
@@ -61,9 +55,8 @@ class CConfigExecBlender:
 
         sPathBlender = self._dicBlender.get("sPath")
         if sPathBlender is None:
-            self._pathBlender = (
-                catharsys.setup.util.GetCathUserPath(_bCheckExists=True)
-                / "blender-{}".format(self.sBlenderVersion)
+            self._pathBlender = catharsys.setup.util.GetCathUserPath(_bCheckExists=True) / "blender-{}".format(
+                self.sBlenderVersion
             )
         else:
             self._pathBlender = path.MakeNormPath(sPathBlender)
@@ -79,30 +72,6 @@ class CConfigExecBlender:
         return self._lType[3]
 
     @property
-    def lModules(self):
-        return self._dicData.get("lModules", [])
-
-    @property
-    def iJobGpuCores(self):
-        return self._dicData.get("iJobGpuCores", 1)
-
-    @property
-    def iJobMaxTime(self):
-        return self._dicData.get("iJobMaxTime", 240)
-
-    @property
-    def sJobQueue(self):
-        return self._dicData.get("sJobQueue", None)
-
-    @property
-    def bIsLsbGpuNewSyntax(self):
-        return self._dicData.get("iLsbGpuNewSyntax", 0) != 0
-
-    @property
-    def iJobMemReqGb(self):
-        return self._dicData.get("iJobMemReqGb", 0)
-
-    @property
     def sBlenderVersion(self):
         return self._dicBlender.get("sVersion")
 
@@ -115,23 +84,13 @@ class CConfigExecBlender:
         return self._pathBlender
 
     @property
-    def pathBlender(self):
-        sPath = self.sBlenderPath
-        if sPath is None:
-            return None
-        # endif
-        return Path(sPath)
-
-    # enddef
-
-    @property
-    def dicBlender(self):
+    def dicBlender(self) -> dict:
         return self._dicBlender
 
     # enddef
 
     @property
-    def dicBlenderSettings(self):
+    def dicBlenderSettings(self) -> dict:
         return self._dicBlender.get("mSettings")
 
     # enddef
