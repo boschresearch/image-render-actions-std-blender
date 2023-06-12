@@ -130,6 +130,9 @@ def _DoImportObjectObj(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = No
 
     fScaleFactor: float = convert.DictElementToFloat(_dicObj, "fScaleFactor", bDoRaise=False)
     lLocation: list[float] = convert.DictElementToFloatList(_dicObj, "lLocation", iLen=3, lDefault=[0.0, 0.0, 0.0])
+    lRotationEuler: list[float] = convert.DictElementToFloatList(
+        _dicObj, "lRotationEuler", iLen=3, lDefault=None, bDoRaise=False
+    )
 
     bDoSetOrigin: bool = False
     dicSetOrigin: dict = _dicObj.get("mSetOrigin")
@@ -161,6 +164,7 @@ def _DoImportObjectObj(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = No
         _sSetOriginType=sSetOriginType,
         _sSetOriginCenter=sSetOriginCenter,
         _lLocation=lLocation,
+        _lRotationEuler=lRotationEuler,
     )
 
     if bDoSmoothSurface is True:
