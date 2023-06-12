@@ -33,7 +33,6 @@ from . import util
 
 ############################################################################################
 def Evaluate(_dicData, sMode="INIT", dicVars={}):
-
     dicResult = {}
 
     for sVarId in _dicData:
@@ -45,11 +44,7 @@ def Evaluate(_dicData, sMode="INIT", dicVars={}):
 
         sEvalType = dicEval.get("sDTI")
         if sEvalType is None:
-            raise RuntimeError(
-                "Element 'sDTI' missing for evaluator for variable id '{}'".format(
-                    sVarId
-                )
-            )
+            raise RuntimeError("Element 'sDTI' missing for evaluator for variable id '{}'".format(sVarId))
         # endif
 
         lApplyModes = dicEval.get("lApplyModes", ["INIT"])
@@ -59,9 +54,7 @@ def Evaluate(_dicData, sMode="INIT", dicVars={}):
         # endif
         print(f"> {sMode}: Applying evaluator '{sEvalType}'")
 
-        funcEval = util.GetModifyFunction(
-            sEvalType, "/catharsys/blender/modify/evaluate/*:*"
-        )
+        funcEval = util.GetModifyFunction(sEvalType, "/catharsys/blender/modify/evaluate/*:*")
         if funcEval is None:
             raise RuntimeError("Evaluator '{}' not available".format(sEvalType))
         # endif
@@ -71,12 +64,8 @@ def Evaluate(_dicData, sMode="INIT", dicVars={}):
         try:
             dicResult[sVarId] = funcEval(dicEval, sMode=sMode, dicVars=dicVars)
         except Exception as xEx:
-            raise CAnyError_Message(
-                sMsg=f"Error executing evaluator '{sEvalType}'", xChildEx=xEx
-            )
+            raise CAnyError_Message(sMsg=f"Error executing evaluator '{sEvalType}'", xChildEx=xEx)
         # endtry
-
-        dicResult[sVarId] = funcEval(dicEval, sMode=sMode, dicVars=dicVars)
     # endfor
 
     return dicResult
