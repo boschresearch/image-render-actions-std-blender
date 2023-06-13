@@ -42,7 +42,6 @@ from anyblend.app.file import IterUsers
 
 ####################################################################################
 def _ScaleImageNodes(*, clnNodes, setOldImageNames, setOldGroupNames, fImgScale):
-
     # Find all images used by texture image nodes
     for nodX in clnNodes:
         if nodX.type == "GROUP":
@@ -112,7 +111,6 @@ def _ScaleImageNodes(*, clnNodes, setOldImageNames, setOldGroupNames, fImgScale)
 
 ####################################################################################
 def _BakeMaterial(*, matX, setOldMaterialNames, setOldImageNames, setOldGroupNames, fImgScale):
-
     # copy material
     sNewMatName = f"Baked;{matX.name}"
     if sNewMatName in bpy.data.materials:
@@ -140,7 +138,6 @@ def _BakeMaterial(*, matX, setOldMaterialNames, setOldImageNames, setOldGroupNam
 
 ####################################################################################
 def _SetDecimatePars(*, modDecimate, dicDecimate: dict, sObjectName: str):
-
     sDecType = dicDecimate.get("sType", "UNSUBDIV")
     if sDecType not in ["COLLAPSE", "UNSUBDIV", "PLANAR"]:
         raise CAnyError_Message(
@@ -170,7 +167,6 @@ def _SetDecimatePars(*, modDecimate, dicDecimate: dict, sObjectName: str):
 
 ####################################################################################
 def _SetRemeshPars(*, modRemesh, dicRemesh: dict, sObjectName: str):
-
     sModType = dicRemesh.get("sType")
     if sModType not in ["VOXEL", "SHARP", "SMOOTH", "BLOCKS"]:
         raise CAnyError_Message(
@@ -193,7 +189,6 @@ def _SetRemeshPars(*, modRemesh, dicRemesh: dict, sObjectName: str):
 
 ############################################################################################
 def BakeMesh(_objX, _dicMod, **kwargs):
-
     sModType = _dicMod.get("sType", _dicMod.get("sDTI"))
 
     if _objX.type != "ARMATURE":
@@ -348,7 +343,7 @@ def BakeMesh(_objX, _dicMod, **kwargs):
                 print(f">>>> Children count set to {iChildCnt}")
 
                 if sPartSysHairConvertType == "MESH":
-                    print(f">>>> Converting to MESH")
+                    print(">>>> Converting to MESH")
                     lPsNames.append(modX.name)
 
                     bpy.ops.object.select_all(action="DESELECT")
@@ -358,7 +353,7 @@ def BakeMesh(_objX, _dicMod, **kwargs):
                     setResult: set = bpy.ops.object.modifier_convert(modifier=modX.name)
 
                     if "FINISHED" not in setResult:
-                        print(f">>>> ERROR converting particle system to mesh")
+                        print(">>>> ERROR converting particle system to mesh")
                         continue
                     # endif
 
@@ -405,7 +400,7 @@ def BakeMesh(_objX, _dicMod, **kwargs):
                             # endfor
                             zetVexGrpNames = frozenset(setVexGrpNames)
                             iKey = hash(zetVexGrpNames)
-                            if not iKey in dicVexGrpCmb:
+                            if iKey not in dicVexGrpCmb:
                                 dicVexGrpCmb[iKey] = {
                                     "setSplIdx": set([iSplIdx]),
                                     "zetVexGrpNames": zetVexGrpNames,
@@ -569,7 +564,6 @@ def BakeMesh(_objX, _dicMod, **kwargs):
                 # and assign vertices to vertex groups that are related to bones of _objX
                 # determined earlier
                 for objPartMesh in lObjPartMesh:
-
                     print(
                         f">>>>>> Joining '{objPartMesh.name}' with '{objMesh.name}'",
                         flush=True,
@@ -592,7 +586,6 @@ def BakeMesh(_objX, _dicMod, **kwargs):
                     bpy.ops.object.join()
 
                     if len(zetI) > 0:
-
                         # print(f">>>>>> Assigning to vertex groups: {zetI}", flush=True)
                         # Get indices of all selected vertices
                         lVexIdx = []
@@ -626,7 +619,6 @@ def BakeMesh(_objX, _dicMod, **kwargs):
             print(f">> Converting materials of mesh '{objMesh.name}'")
             # Reduce size of image textures
             for iMatIdx, matX in enumerate(objMesh.data.materials):
-
                 matY = _BakeMaterial(
                     matX=matX,
                     fImgScale=fImageScale,
