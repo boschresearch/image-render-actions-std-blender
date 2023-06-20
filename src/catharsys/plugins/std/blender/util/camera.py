@@ -43,10 +43,7 @@ from catharsys.decs.decorator_log import logFunctionCall
 # Get Camera name or camera name and parent depending on whether only
 # a camera name is given or a camera set with a pose name.
 @logFunctionCall
-def GetSelectedCameraName(_dicData, **kwargs):
-
-    bDoThrow = kwargs.pop("bRaiseException", True)
-
+def GetSelectedCameraName(_dicData, *, bDoRaise: bool = True):
     sCameraNameType = "camera-name:1"
     sCameraSetType = "camera-set:1"
     sCameraPoseType1 = "camera-pose-path:1"
@@ -61,7 +58,7 @@ def GetSelectedCameraName(_dicData, **kwargs):
     else:
         lCamSet = config.GetDataBlocksOfType(_dicData, sCameraSetType)
         if len(lCamSet) == 0:
-            if bDoThrow:
+            if bDoRaise:
                 raise Exception("No camera names of type compatible to '{0}' given".format(sCameraSetType))
             # endif
             logFunctionCall.PrintLog("returning None")
@@ -74,7 +71,7 @@ def GetSelectedCameraName(_dicData, **kwargs):
         if len(lCamPose) == 0:
             lCamPose = config.GetDataBlocksOfType(_dicData, sCameraPoseType2)
             if len(lCamPose) == 0:
-                if bDoThrow:
+                if bDoRaise:
                     raise Exception(
                         "No camera names of type compatible to '{0}' or '{1}' given".format(
                             sCameraPoseType1, sCameraPoseType2
@@ -97,7 +94,7 @@ def GetSelectedCameraName(_dicData, **kwargs):
 
         sCameraParentName = dicCamPose.get("sParent")
         if sCameraParentName is None:
-            if bDoThrow:
+            if bDoRaise:
                 raise Exception("Camera parent name not given in camera pose '{0}'.".format(sCamPosePath))
             # endif
             logFunctionCall.PrintLog("returning None")
@@ -128,7 +125,7 @@ def GetSelectedCameraName(_dicData, **kwargs):
         elif config.IsConfigType(dicCamPose, "/catharsys/camera-pose:1.1"):
             sCameraName = dicCamPose.get("sCamera")
             if sCameraName is None:
-                if bDoThrow:
+                if bDoRaise:
                     raise Exception("Camera name not given in camera pose '{0}'.".format(sCamPosePath))
                 # endif
                 logFunctionCall.PrintLog("returning None")
@@ -148,11 +145,11 @@ def GetSelectedCameraName(_dicData, **kwargs):
 
 # enddef
 
+
 ################################################################################
 # Get Camera Set dictionary
 @logFunctionCall
 def GetCameraSet(_dicData, **kwargs):
-
     bDoThrow = kwargs.pop("bRaiseException", True)
 
     sCameraSetType = "camera-set:1"
@@ -186,7 +183,6 @@ def GetCameraSet(_dicData, **kwargs):
 ############################################################################################
 @logFunctionCall
 def GetCameraData(_sObjId):
-
     objX = bpy.data.objects.get(_sObjId)
     if objX is None:
         raise Exception("Object with id '{0}' not found".format(_sObjId))

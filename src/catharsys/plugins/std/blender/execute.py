@@ -207,11 +207,17 @@ def _StartBlenderWithScript(*, xBlenderCfg, pathBlenderFile, pathJobConfig, dicD
     # Therefore, the next best thing is to wait a couple of seconds and then output
     # some text that can be captured by the problem matcher.
 
+    if isinstance(pathBlenderFile, Path):
+        sPathBlenderFile = pathBlenderFile.as_posix()
+    else:
+        sPathBlenderFile = None
+    # endif
+
     xScript = res.files(catharsys.plugins.std).joinpath("scripts").joinpath("run-action.py")
     with res.as_file(xScript) as pathScript:
         bOK, lStdOut = xBlenderCfg.ExecBlender(
             lArgs=["-noaudio"],
-            sPathBlendFile=pathBlenderFile.as_posix(),
+            sPathBlendFile=sPathBlenderFile,
             sPathScript=pathScript.as_posix(),
             lScriptArgs=lScriptArgs,
             bBackground=bBackground,
@@ -263,7 +269,11 @@ def _LsfStartBlenderWithScript(
 
     sScriptArgs = pathJobConfig.as_posix()
     sScriptFile = pathBlenderScript.as_posix()
-    sBlenderFile = pathBlenderFile.as_posix()
+    if isinstance(pathBlenderFile, Path):
+        sBlenderFile = pathBlenderFile.as_posix()
+    else:
+        sBlenderFile = ""
+    # endif
     sBlenderUserConfig = xBlenderCfg.pathConfig.as_posix()
     sBlenderUserScripts = xBlenderCfg.pathScripts.as_posix()
 

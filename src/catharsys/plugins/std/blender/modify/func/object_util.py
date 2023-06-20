@@ -33,13 +33,14 @@ try:
     import _bpy
     import bpy
     import mathutils
-
+    from pathlib import Path
     from anyblend.cls_boundbox import CBoundingBox
     from anyblend import object as anyobj
+    from anyblend import ops_object as objops
     from anyblend import collection as anycln
     from anyblend import viewlayer as anyvl
     from anycam import ops as camops
-    from anybase import config, convert
+    from anybase import config, convert, path
 
     g_bInBlenderContext = True
 except Exception:
@@ -50,7 +51,6 @@ from anybase import assertion
 
 ############################################################################################
 def _EnableRender(_objX, _bEnable, bRecursive=True):
-
     _objX.hide_render = not _bEnable
     if bRecursive:
         for objC in _objX.children:
@@ -242,7 +242,6 @@ def ModifyAttributes(_objX, _dicMod, **kwargs):
         lPath = [_objX.name]
 
         for iIdx, sSubKey in enumerate(lKey):
-
             if not hasattr(objY, sSubKey):
                 raise RuntimeError("Object '{}' has no attribute '{}'".format(".".join(lPath), sSubKey))
             # endif
@@ -430,6 +429,31 @@ def LogObject(_objX, _dicMod, **kwargs):
         print("=== Logging", _objX.name, "===")
         print(dicJson)
     # endif
+
+
+# enddef
+
+
+################################################################################
+def ExportObjectObj(_objX, _dicMod, **kwargs):
+    sFilePath = convert.DictElementToString(_dicMod, "sFilePath")
+    bCreatePath = convert.DictElementToBool(_dicMod, "bCreatePath", bDefault=False)
+    pathFile = path.MakeNormPath(sFilePath)
+
+    if not pathFile.is_absolute():
+        pathBlend = Path(bpy.path.abspath("//"))
+        pathFile = path.MakeNormPath(pathBlend / pathFile)
+    # endif
+
+    if not pathFile.parent.exists() and bCreatePath is True:
+        pathFile.parent.mkdir(parents=True, exist_ok=True)
+    # endif
+
+    if not pathFile.parent.exists():
+        raise RuntimeError(f"Export path for object ' {_objX.name}' does not exist: {(pathFile.parent.as_posix())}")
+    # endif
+
+    objops.ExportFromScene_Obj(pathFile, _objX)
 
 
 # enddef

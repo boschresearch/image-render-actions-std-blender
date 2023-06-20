@@ -50,7 +50,6 @@ class EModifierType(enum.Enum):
 
 ############################################################################################
 def Execute(_dicProgram, sMode="INIT", dicVars=None):
-
     if _dicProgram is None:
         return
     # endif
@@ -59,6 +58,11 @@ def Execute(_dicProgram, sMode="INIT", dicVars=None):
 
     lMods = dicProgram.get("lModifier")
     if lMods is None:
+        return
+    # endif
+
+    lApplyModes = dicProgram.get("lApplyModes", ["INIT", "FRAME_UPDATE"])
+    if sMode not in lApplyModes:
         return
     # endif
 

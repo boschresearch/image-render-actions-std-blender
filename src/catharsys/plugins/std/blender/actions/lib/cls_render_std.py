@@ -77,6 +77,10 @@ class CRenderStandard(CRender):
                         "Frame_{0:04d}.blend".format(self.iTargetFrame),
                     )
                     lOutputFilenames = lOutNewFilenames = [sOutputFilename]
+
+                elif xLocalRndOutType.sMainType == NsMainTypesRenderOut.none:
+                    sOutputFilename = None
+                    lOutputFilenames = lOutNewFilenames = [sOutputFilename]
                 else:
                     # Evaluate scene frame from target frame and scene fps
                     self.fTargetTime = self.iTargetFrame / self.fTargetFps
@@ -130,6 +134,11 @@ class CRenderStandard(CRender):
 
                 bMissing = False
                 for sFo in lOutNewFilenames:
+                    if sFo is None:
+                        bMissing = True
+                        break
+                    # endif
+
                     self.Print("Test for rendered file: {0}".format(sFo))
                     if not os.path.isfile(sFo):
                         bMissing = True
@@ -221,7 +230,7 @@ class CRenderStandard(CRender):
                 lOutputFilenames = dicFiles["lOutputFilenames"]
                 lOutNewFilenames = dicFiles["lOutNewFilenames"]
 
-                if xRndOutType.sMainType != NsMainTypesRenderOut.blend:
+                if xRndOutType.sMainType not in [NsMainTypesRenderOut.blend, NsMainTypesRenderOut.none]:
                     # apply render output settings
                     self._ApplyCfgRenderOutputFiles(dicRndOut)
                     self._ApplyCfgRenderOutputSettings(dicRndOut)
@@ -262,11 +271,13 @@ class CRenderStandard(CRender):
 
                 ######################################################
                 # Export the label data to json
-                self._ExportLabelData(os.path.dirname(lOutNewFilenames[0]), self.iTargetFrame, False)
+                if xRndOutType.sMainType != NsMainTypesRenderOut.none:
+                    self._ExportLabelData(os.path.dirname(lOutNewFilenames[0]), self.iTargetFrame, False)
+                # endif
                 ######################################################
 
                 ######################################################
-                if xRndOutType.sMainType != NsMainTypesRenderOut.blend:
+                if xRndOutType.sMainType not in [NsMainTypesRenderOut.blend, NsMainTypesRenderOut.none]:
                     ######################################################
                     xRenderSettings = self._GetCfgRenderSettings(self.lRndSettings)
                     dicMainSettings = xRenderSettings.mMain
@@ -280,7 +291,7 @@ class CRenderStandard(CRender):
 
                 ######################################################
                 # Perform the rendering
-                if self.bDoRender:
+                if self.bDoRender and xRndOutType.sMainType != NsMainTypesRenderOut.none:
                     if xRndOutType.sMainType == NsMainTypesRenderOut.blend:
                         # Pack everything into the blender file
                         anyblend.app.file.PackAllLocal()
@@ -322,7 +333,7 @@ class CRenderStandard(CRender):
                 # endif
 
                 ######################################################
-                if xRndOutType.sMainType != NsMainTypesRenderOut.blend:
+                if xRndOutType.sMainType not in [NsMainTypesRenderOut.blend, NsMainTypesRenderOut.none]:
                     # If pos3d ground truth was rendered, some offset was applied for rendering.
                     # Transform the rendered image back to absolute 3d world coordinates.
                     # Furthermore, if the scene was transformed to the camera frame, then
