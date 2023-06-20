@@ -62,13 +62,13 @@ class CSetOriginParams:
 
 # endclass
 
+
 # -------------------------------------------------------------------------------------------
 @EntryPoint(
     CEntrypointInformation.EEntryType.MODIFIER,
     clsInterfaceDoc=CSetOriginParams,
 )
 def SetOrigin(_objX, _dicMod, **kwargs):
-
     # -- from dict to paramclass
     # -- assertions on OPTIONS are be done inside paramclass
     paramMod = CSetOriginParams(_dicMod)
@@ -124,6 +124,7 @@ class CDeltaRotationEulerParams:
 
 
 # endclass
+
 
 # -------------------------------------------------------------------------------------------
 @EntryPoint(
@@ -197,6 +198,7 @@ class CRotationEulerParams:
 
 # endclass
 
+
 # -------------------------------------------------------------------------------------------
 @EntryPoint(
     CEntrypointInformation.EEntryType.MODIFIER,
@@ -219,6 +221,7 @@ def RotationEuler(_objX, _dicMod, **kwargs):
 
 # enddef
 
+
 ############################################################################################
 def _Metric2BlenderScale(_sUnit: str):
     dMeterPerUnit = 1.0
@@ -240,6 +243,7 @@ def _Metric2BlenderScale(_sUnit: str):
 
 # enddef
 
+
 ############################################################################################
 ############################################################################################
 @paramclass
@@ -256,6 +260,7 @@ class CDeltaLocationParams:
 
 
 # endclass
+
 
 # -------------------------------------------------------------------------------------------
 @EntryPoint(
@@ -296,6 +301,7 @@ class CLocationParams:
 
 
 # endclass
+
 
 # -------------------------------------------------------------------------------------------
 @EntryPoint(
@@ -350,6 +356,7 @@ class CScaleParams:
 
 # endclass
 
+
 # -------------------------------------------------------------------------------------------
 @EntryPoint(
     CEntrypointInformation.EEntryType.MODIFIER,
@@ -398,6 +405,7 @@ class CDeltaScaleParams:
 
 # endclass
 
+
 # -------------------------------------------------------------------------------------------
 @EntryPoint(
     CEntrypointInformation.EEntryType.MODIFIER,
@@ -432,24 +440,14 @@ class CScaleToSceneParams:
         CParamFields.HINT("Blender-Unit is per default unit-free. Determine the phyiscal intention of one BU in meter"),
     )
     lScale: list = (
-        CParamFields.REQUIRED(list[float, float, float], float),
+        CParamFields.REQUIRED(list[float, float, float]),
         CParamFields.DEPRECATED("xValue"),
-        CParamFields.HINT(
-            "scale can be given as list[float,float,float] to specifier all three dimensions, or only one float for all dim"
-        ),
+        CParamFields.HINT("scale can be given as list[float,float,float] to specifier all three dimensions"),
     )
-
-    def __post_init__(self, _dictArgs):
-        # no generic expanding of a single float into a list can be applied
-        # check optional types and create the correct value
-        if isinstance(self.lScale, float):
-            fScale = self.lScale
-            self.lScale = [fScale, fScale, fScale]
-
-    # end def
 
 
 # endclass
+
 
 # -------------------------------------------------------------------------------------------
 @EntryPoint(
@@ -469,7 +467,14 @@ def ScaleToSceneUnit(_objX, _dicMod, **kwargs):
     fMeterPerBU = bpy.context.scene.unit_settings.scale_length
 
     # Set scale of object
-    _objX.scale = (paramMod.fOrigMeterPerBU / fMeterPerBU) * mathutils.Vector(paramMod.lScale)
+    if isinstance(paramMod.lScale, list):
+        _objX.scale = (paramMod.fOrigMeterPerBU / fMeterPerBU) * mathutils.Vector(paramMod.lScale)
+    else:
+        _objX.scale = (
+            (paramMod.fOrigMeterPerBU / fMeterPerBU) * float(paramMod.lScale) * mathutils.Vector(1.0, 1.0, 1.0)
+        )
+    # endif
+
     anyvl.Update()
 
 
@@ -529,6 +534,7 @@ class CSnapObjToSurfParams:
 
 # endclass
 
+
 # -------------------------------------------------------------------------------------------
 @EntryPoint(CEntrypointInformation.EEntryType.MODIFIER)
 def SnapObjToSurf(_objX, _dicMod, **kwargs):
@@ -556,6 +562,59 @@ def SnapObjToSurf(_objX, _dicMod, **kwargs):
     vDelta = anyobj.GetObjectDeltaToMesh(objTrg=objTrg, objX=_objX, vDir=paramMod.lSnapDir, sMode=paramMod.sSnapMode)
     _objX.location += vDelta + paramMod.lOffset
     # Need to call update, so that world matrix of object is also updated
+    anyvl.Update()
+
+
+# enddef
+
+
+############################################################################################
+@paramclass
+class CApplyTransformsParams:
+    sDTI: str = (
+        CParamFields.HINT(sHint="entry point identification"),
+        CParamFields.REQUIRED("blender/modify/object/apply-transforms:1.0"),
+    )
+
+    bLocation: bool = (
+        CParamFields.DEFAULT(True),
+        CParamFields.DISPLAY("apply location"),
+    )
+
+    bRotation: bool = (
+        CParamFields.DEFAULT(True),
+        CParamFields.DISPLAY("apply rotation"),
+    )
+
+    bScale: bool = (
+        CParamFields.DEFAULT(True),
+        CParamFields.DISPLAY("apply scale"),
+    )
+
+    bProperties: bool = (
+        CParamFields.DEFAULT(True),
+        CParamFields.DISPLAY("apply properties"),
+    )
+
+
+# endclass
+
+
+def ApplyTransforms(_objX, _dicMod, **kwargs):
+    """
+    applies all transformations to the mesh
+    """
+
+    paramMod = CApplyTransformsParams(_dicMod)
+
+    anyops.ApplyTransforms(
+        _objX,
+        _bLocation=paramMod.bLocation,
+        _bRotation=paramMod.bRotation,
+        _bScale=paramMod.bScale,
+        _bProperties=paramMod.bProperties,
+    )
+
     anyvl.Update()
 
 

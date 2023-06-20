@@ -69,6 +69,7 @@ import numpy as np
 os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
 import cv2
 
+
 #######################################################################################
 class CRenderSettings:
     def __init__(self) -> None:
@@ -161,6 +162,7 @@ class NsMainTypesRenderOut:
     image: str
     anytruth: str
     blend: str
+    none: str
 
 
 @constKeywordNamespace
@@ -206,7 +208,6 @@ class CRenderOutputType:
 
 
 class CRender:
-
     ################################################################################
     def __init__(self, *, xPrjCfg, dicCfg, sDtiCapCfg):
         self.bIsInitialized: bool = False
@@ -302,12 +303,20 @@ class CRender:
     # Initialize Rendering with set of configs
     @logFunctionCall
     def Init(self):
-
         self.bIsInitialized = False
 
         self.xCtx = bpy.context
         self.xScn = self.xCtx.scene
         self.sFpBlendOrig = self.xCtx.blend_data.filepath
+
+        # if we started with the default Blender scene and no Blender file,
+        # then delete all objects.
+        if self.sFpBlendOrig == "":
+            lObj = [x.name for x in bpy.data.objects]
+            for sObj in lObj:
+                bpy.data.objects.remove(bpy.data.objects[sObj])
+            # endfor
+        # endif
 
         # Ensure that scene is in object mode.
         # Otherwise, many modifiers will not work properly.
@@ -330,9 +339,11 @@ class CRender:
         # Load capture config
         lCap = cathcfg.GetDataBlocksOfType(dicData, self.sDtiCapCfg)
         if len(lCap) == 0:
-            raise CAnyExcept("No capture configuration of type compatible to '{0}' given.".format(self.sDtiCapCfg))
+            print(f"WARNING: No capture configuration of type compatible to '{self.sDtiCapCfg}' given.")
+            self.dicCap = None
+        else:
+            self.dicCap = lCap[0]
         # endif
-        self.dicCap = lCap[0]
 
         # ########################################################
         # Load render output config
@@ -355,9 +366,14 @@ class CRender:
         self._ApplyCfgRenderSettings(xRenderSettings)
 
         # Get camera name and camera parent object if defined
-        dicCameraName = cbu_cam.GetSelectedCameraName(dicData)
-        self.sCameraName = dicCameraName.get("sCameraName")
-        self.sCameraParentName = dicCameraName.get("sCameraParentName")
+        dicCameraName = cbu_cam.GetSelectedCameraName(dicData, bDoRaise=False)
+        if dicCameraName is not None:
+            self.sCameraName = dicCameraName.get("sCameraName")
+            self.sCameraParentName = dicCameraName.get("sCameraParentName")
+        else:
+            self.sCameraName = None
+            self.sCameraParentName = None
+        # endif
 
         # Scene Configurations
         self.lAnim = cathcfg.GetDataBlocksOfType(dicData, NsConfigDTI.sDtiAnim)
@@ -397,7 +413,12 @@ class CRender:
         # endif
 
         # General variables
-        self.fTargetFps = self.dicCap.get("dFPS")
+        if self.dicCap is None:
+            self.fTargetFps = self.xScn.render.fps
+        else:
+            self.fTargetFps = self.dicCap.get("dFPS")
+        # endif
+
         self.fSceneFps = self.xScn.render.fps / self.xScn.render.fps_base
         self.iTargetFrame = self.iFrameFirst
         self.fTargetTime = self.iTargetFrame / self.fTargetFps
@@ -462,7 +483,6 @@ class CRender:
     # Clean-up after rendering
     @logFunctionCall
     def Finalize(self):
-
         self.Print("\n>>> Memory usage after render finalize:\n")
         bpy.ops.wm.memory_statistics()
 
@@ -477,6 +497,9 @@ class CRender:
     # Activate selected anycam camera
     @logFunctionCall
     def _ApplyCfgCamera(self):
+        if self.sCameraName is None:
+            return
+        # endif
 
         try:
             logFunctionCall.PrintLog(f"activating: {self.sCameraName}")
@@ -510,7 +533,6 @@ class CRender:
     # current render output type
 
     def _GetCfgRenderSettings(self, _lSettings) -> CRenderSettings:
-
         xSetting = CRenderSettings()
         if _lSettings:
             for dicSettings in _lSettings:
@@ -538,7 +560,6 @@ class CRender:
     def _GetCombinedCfgRenderSettings(
         self, _dicRndOut, dicCycles=None, dicRender=None, dicMain=None
     ) -> CRenderSettings:
-
         xSelfRenderSettings: CRenderSettings = self._GetCfgRenderSettings(self.lRndSettings)
         xDictRenderSettings: CRenderSettings = self._GetCfgRenderSettings(_dicRndOut.get("lSettings"))
 
@@ -564,7 +585,6 @@ class CRender:
 
     ##############################################################
     def _ApplyCfgRenderSettings(self, _xRenderSettings: CRenderSettings):
-
         if len(_xRenderSettings.mCycles.keys()) > 0:
             self.xCfgCycles = CConfigSettingsCycles(_xRenderSettings.mCycles)
             self.xCfgCycles.Apply(self.xCtx)
@@ -579,7 +599,6 @@ class CRender:
 
     ##############################################################
     def _ApplyCombinedCfgRenderSettings(self, _dicRndOut, dicCycles=None, dicRender=None, dicMain=None):
-
         xSettings: CRenderSettings = self._GetCombinedCfgRenderSettings(
             _dicRndOut, dicCycles=dicCycles, dicRender=dicRender, dicMain=dicMain
         )
@@ -590,7 +609,6 @@ class CRender:
 
     ##############################################################
     def _RestoreCfgRenderSettings(self):
-
         if self.xCfgCycles is not None:
             self.xCfgCycles.Apply(self.xCtx, bRestore=True)
             self.xCfgCycles = None
@@ -606,7 +624,6 @@ class CRender:
     ##############################################################
     # get the render output Type string (useful for factory)
     def _GetRenderOutType(self, _dicRndOut, _sTargetDti) -> CRenderOutputType:
-
         dicCfgType = cathcfg.CheckConfigType(_dicRndOut, _sTargetDti)
         if not dicCfgType.get("bOK"):
             raise CAnyExcept("Invalid render output configuration given")
@@ -642,7 +659,6 @@ class CRender:
         # current render output type
 
         if self.xRndOutType.sMainType == NsMainTypesRenderOut.image:
-
             self.lFileOut = None
 
             if self.xRndOutType.sSpecificType is None:
@@ -703,7 +719,6 @@ class CRender:
     ##############################################################
     # Apply render output configuration
     def _ApplyCfgRenderOutputFiles(self, _dicRndOut):
-
         self.xRndOutType = self._GetRenderOutType(_dicRndOut, NsConfigDTI.sDtiRenderOutputAll)
         self._ApplyCommonRenderOutputSettings(_dicRndOut)  # raise exception for unhandled, or bad configured
 
@@ -737,7 +752,6 @@ class CRender:
     ##############################################################
     # Apply render output configuration
     def _ApplyCfgRenderOutputSettings(self, _dicRndOut):
-
         self.xRndOutType = self._GetRenderOutType(_dicRndOut, NsConfigDTI.sDtiRenderOutputAll)
         self._ApplyCommonRenderOutputSettings(_dicRndOut)  # raise exception for unhandled, or bad configured
 
@@ -750,7 +764,6 @@ class CRender:
         # current render output type
 
         if self.xRndOutType.sMainType == NsMainTypesRenderOut.image:
-
             # Apply render/cycles parameters if available
             self._ApplyCombinedCfgRenderSettings(_dicRndOut)
 
@@ -849,7 +862,6 @@ class CRender:
     ###########################################################
     # Apply animation configs
     def _ApplyCfgAnimation(self):
-
         if len(self.lAnim) > 0:
             # clear all pre frame handler
             anyblend.anim.util.ClearAnim()
@@ -868,7 +880,6 @@ class CRender:
     ###########################################################
     # Initialize Point Cloud Data
     def _ApplyCfgPointClouds(self):
-
         self.xPclSet = anypoints.CPointCloudSet()
         for dicPclRef in self.lPclRefSet:
             sFpConfig = dicPclRef.get("sConfig")
@@ -905,7 +916,6 @@ class CRender:
     ###########################################################
     # Import of point clouds that vary per frame
     def _AnimPointClouds(self, _iScnFrame):
-
         if self.bHasPointClouds:
             self.xPclSet.RemovePointCloudDict(self.dicAnimPclSel)
             anyblend.collection.SetActiveCollection(self.xCtx, self.xClnPcl.name)
@@ -922,7 +932,6 @@ class CRender:
     # Apply label render settings after modifications, animations
     # and point clouds are loaded and applied
     def _ApplyCfgAnnotation(self, bApplyFilePathsOnly=False):
-
         if self.bApplyAnnotation:
             # Disable auto-update of label data with frame change.
             anytruth.ops_labeldb.EnableAutoUpdateAnnotation(self.xCtx, False)
@@ -960,7 +969,6 @@ class CRender:
 
     ##############################################################
     def _ExportLabelData(self, _sPath, _iTrgFrame, _bUpdateLabelData3d: bool = True, _bEvalBoxes2d: bool = False):
-
         if self.sRenderOutType == "anytruth/label":
             sFpLabel = os.path.join(_sPath, "Frame_{0:04d}.json".format(_iTrgFrame))
             self.Print("Exporting label types to: {0}".format(sFpLabel))
@@ -982,13 +990,11 @@ class CRender:
 
     ##############################################################
     def _PostProcLabelRender(self, *, _sFpRender: str, _bTransformSceneToCameraFrame: bool):
-
         # If pos3d ground truth was rendered, some offset was applied for rendering.
         # Transform the rendered image back to absolute 3d world coordinates.
         # Furthermore, if the scene was transformed to the camera frame, then
         # transform the data back.
         if self.sRenderOutType == "anytruth/pos3d":
-
             lOffsetPos3d = anytruth.ops_labeldb.GetOffsetPos3d()
 
             lMatOrig: list = None
@@ -1043,7 +1049,6 @@ class CRender:
 
     ##############################################################
     def _SaveBlenderFile(self, _iTrgFrame):
-
         sRelPathRenderOutput = os.path.relpath(self.sPathTrgMain, self.xPrjCfg.sRenderPath)
         sRelPathRenderOutput = os.path.normpath(sRelPathRenderOutput)
         lRelPathRenderOutput = sRelPathRenderOutput.split(os.sep)
@@ -1057,6 +1062,10 @@ class CRender:
         # endif
 
         sBlenderDebugFilePath = bpy.path.abspath("//")
+        if sBlenderDebugFilePath == "":
+            sBlenderDebugFilePath = self.sPathTrgMain
+        # endif
+
         sFpBlenderFile = os.path.normpath(
             os.path.join(
                 sBlenderDebugFilePath,
@@ -1076,7 +1085,6 @@ class CRender:
     ################################################################################
     # Store names of all collections, objects, materials, images, node_groups
     def _StoreSceneState(self):
-
         self.dicSceneElements = {}
         for sType in self.lSceneElementTypes:
             xData = getattr(bpy.data, sType)
@@ -1087,7 +1095,6 @@ class CRender:
 
     ##############################################################
     def _RestoreScene(self):
-
         ###########################################################
         # Need to clear animation explicitly, so that internal
         # book-keeping of animation handlers works.

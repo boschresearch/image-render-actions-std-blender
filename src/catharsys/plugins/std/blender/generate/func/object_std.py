@@ -87,7 +87,6 @@ def GenerateBlenderObject(_args, **kwargs):
 
 ############################################################################################
 def LoadObject(_dicObj, **kwargs):
-
     sBlenderFilename = _dicObj.get("sBlenderFilename")
     if sBlenderFilename is None:
         raise RuntimeError("Key 'sBlenderFilename' missing in load object configuration")
@@ -127,7 +126,6 @@ def LoadObject(_dicObj, **kwargs):
 
 ############################################################################################
 def _DoImportObjectObj(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = None):
-
     fScaleFactor: float = convert.DictElementToFloat(_dicObj, "fScaleFactor", bDoRaise=False)
     lLocation: list[float] = convert.DictElementToFloatList(_dicObj, "lLocation", iLen=3, lDefault=[0.0, 0.0, 0.0])
     lRotationEuler: list[float] = convert.DictElementToFloatList(
@@ -179,7 +177,6 @@ def _DoImportObjectObj(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = No
 
 ############################################################################################
 def ImportObjectObj(_dicObj, **kwargs):
-
     xCtx = bpy.context
 
     sFilePath: str = convert.DictElementToString(_dicObj, "sFilePath")

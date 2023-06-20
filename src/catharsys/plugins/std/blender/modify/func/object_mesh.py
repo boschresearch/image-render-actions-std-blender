@@ -28,21 +28,53 @@
 
 import bpy
 import mathutils
+from pathlib import Path
 
 import random
+from anybase import convert
+from anyblend import object
+
 
 ############################################################################################
 def RandomizeMesh(_objX, _dicMod, **kwargs):
-
     sModType = _dicMod.get("sType", _dicMod.get("sDTI"))
     lMeshes = _dicMod.get("lMeshes")
     sMesh = random.choice(lMeshes)
 
     if sMesh not in bpy.data.meshes:
-        raise Exception(
-            "Mesh '{0}' not found in modifier '{1}'".format(sMesh, sModType)
-        )
+        raise Exception("Mesh '{0}' not found in modifier '{1}'".format(sMesh, sModType))
     _objX.data = bpy.data.meshes[sMesh]
+
+
+# enddef
+
+
+############################################################################################
+def VoxelRemeshBakeTexture(_objX, _dicMod, **kwargs):
+    fRemeshVoxelSize = convert.DictElementToFloat(_dicMod, "fRemeshVoxelSize")
+    bRemeshSmoothShade = convert.DictElementToBool(_dicMod, "bRemeshSmoothShade", bDefault=True)
+    bDoSmoothSurface = convert.DictElementToBool(_dicMod, "bDoSmoothSurface", bDefault=True)
+    iSmoothIterations = convert.DictElementToInt(_dicMod, "iSmoothIterations", iDefault=3)
+    fSmoothFactor = convert.DictElementToFloat(_dicMod, "fSmoothFactor", fDefault=0.5)
+    iMultiResIterCnt = convert.DictElementToInt(_dicMod, "iMultiResIterations", iDefault=2)
+    sLowPolyObjName = convert.DictElementToString(_dicMod, "sLowPolyObjName", sDefault=None, bDoRaise=False)
+    lBakedTexRes = convert.DictElementToIntList(_dicMod, "lBakedTexRes", lDefault=[2048, 2048])
+    fBakedTexCageExtrusion = convert.DictElementToFloat(_dicMod, "fBakedTexCageExtrusion", fDefault=0.1)
+    sTexPath = convert.DictElementToString(_dicMod, "sTexPath", sDefault=None, bDoRaise=False)
+
+    object.VoxelRemesh_BakeTexture(
+        _objIn=_objX,
+        _fRemeshVoxelSize=fRemeshVoxelSize,
+        _bRemeshSmoothShade=bRemeshSmoothShade,
+        _bDoSmoothSurface=bDoSmoothSurface,
+        _iSmoothIterations=iSmoothIterations,
+        _fSmoothFactor=fSmoothFactor,
+        _iMultiResIterCnt=iMultiResIterCnt,
+        _sLowPolyObjName=sLowPolyObjName,
+        _tBakedTexRes=tuple(lBakedTexRes),
+        _fBakedTexCageExtrusion=fBakedTexCageExtrusion,
+        _pathTex=Path(sTexPath),
+    )
 
 
 # enddef

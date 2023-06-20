@@ -27,54 +27,46 @@
 ###
 import copy
 from pathlib import Path
-from anybase import config, path
+from anybase import config, path, convert
 from anybase.cls_any_error import CAnyError_TaskMessage, CAnyError_Message
 from .cls_render_project import CRenderProjectConfig
 
 
 class CConfigTrialBlender:
-
     _xPrjCfg: CRenderProjectConfig = None
     _dicData: dict = None
     _pathBlenderFile: Path = None
 
     ########################################################################################
     def __init__(self, *, xPrjCfg, dicBlender):
-
         self._xPrjCfg = xPrjCfg
         self._dicData = copy.deepcopy(dicBlender)
         config.AssertConfigType(dicBlender, "/catharsys/trial/blender:1")
 
-        if "sBlenderFile" not in self._dicData:
-            raise CAnyError_TaskMessage(
-                sTask="Initializing Blender trial configuration",
-                sMsg="Element 'sBlenderFile' missing",
-            )
-        # endif
+        sBlenderFile = convert.DictElementToString(self._dicData, "sBlenderFile", sDefault="")
+        if sBlenderFile != "":
+            pathBlenderFile = Path(sBlenderFile)
 
-        pathBlenderFile = Path(self._dicData["sBlenderFile"])
-
-        # Process filepath and check validity
-        if pathBlenderFile.is_absolute():
-            self._pathBlenderFile = path.NormPath(pathBlenderFile)
-            if not self._pathBlenderFile.exists():
-                raise CAnyError_Message(
-                    sMsg="Blender file '{0}' not found".format(
-                        self._pathBlenderFile.as_posix()
+            # Process filepath and check validity
+            if pathBlenderFile.is_absolute():
+                self._pathBlenderFile = path.NormPath(pathBlenderFile)
+                if not self._pathBlenderFile.exists():
+                    raise CAnyError_Message(
+                        sMsg="Blender file '{0}' not found".format(self._pathBlenderFile.as_posix())
                     )
-                )
+                # endif
+            else:
+                self._pathBlenderFile = path.NormPath(self._xPrjCfg.pathLaunch / pathBlenderFile)
+                if not self._pathBlenderFile.exists():
+                    raise CAnyError_Message(
+                        sMsg="Blender file '{0}' not found at path: {1}".format(
+                            pathBlenderFile.as_posix(), self._pathBlenderFile.as_posix()
+                        )
+                    )
+                # endif
             # endif
         else:
-            self._pathBlenderFile = path.NormPath(
-                self._xPrjCfg.pathLaunch / pathBlenderFile
-            )
-            if not self._pathBlenderFile.exists():
-                raise CAnyError_Message(
-                    sMsg="Blender file '{0}' not found at path: {1}".format(
-                        pathBlenderFile.as_posix(), self._pathBlenderFile.as_posix()
-                    )
-                )
-            # endif
+            self._pathBlenderFile = None
         # endif
 
     # enddef
@@ -83,19 +75,19 @@ class CConfigTrialBlender:
     # Properties
 
     @property
-    def xPrjCfg(self):
+    def xPrjCfg(self) -> CRenderProjectConfig:
         return self._xPrjCfg
 
     # enddef
 
     @property
-    def dicData(self):
+    def dicData(self) -> dict:
         return self._dicData
 
     # enddef
 
     @property
-    def pathBlenderFile(self):
+    def pathBlenderFile(self) -> Path:
         return self._pathBlenderFile
 
     # enddef
