@@ -337,21 +337,10 @@ class CScaleParams:
     )
 
     lScale: list = (
-        CParamFields.REQUIRED(list[float, float, float], float),
+        CParamFields.REQUIRED(list[float, float, float]),
         CParamFields.DEPRECATED("xValue"),
-        CParamFields.HINT(
-            "scale can be given as list[float,float,float] to specifier all three dimensions, or only one float for all dim"
-        ),
+        CParamFields.HINT("scale can be given as list[float,float,float] to specifier all three dimensions"),
     )
-
-    def __post_init__(self, _dictArgs):
-        # no generic expanding of a single float into a list can be applied
-        # check optional types and create the correct value
-        if isinstance(self.lScale, float):
-            fScale = self.lScale
-            self.lScale = [fScale, fScale, fScale]
-
-    # end def
 
 
 # endclass
