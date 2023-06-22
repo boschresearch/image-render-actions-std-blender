@@ -60,7 +60,6 @@ g_rePyVer = re.compile(r"(\d+\.\d+\.\d+)")
 
 ############################################################################
 def LoadDefaultBlenderSettings(*, xBlenderCfg, sPrintPrefix=""):
-
     reSetVer = re.compile(r"(\d+)-(\d+)\.json5")
 
     dicSet = None
@@ -120,7 +119,6 @@ def LoadDefaultBlenderSettings(*, xBlenderCfg, sPrintPrefix=""):
 
 ############################################################################
 def ConfigureBlender(*, xBlenderCfg, dicSettings, sPrintPrefix=""):
-
     print("\n" + sPrintPrefix + "=================================================================")
     print(sPrintPrefix + "Configuring Blender...")
 
@@ -139,7 +137,6 @@ def ConfigureBlender(*, xBlenderCfg, dicSettings, sPrintPrefix=""):
 
     xScript = res.files(catharsys.plugins.std.blender).joinpath("scripts").joinpath("run-blender-configure.py")
     with res.as_file(xScript) as pathScript:
-
         bOK = xBlenderCfg.ExecBlender(
             lArgs=["-noaudio"],
             sPathScript=pathScript.as_posix(),
@@ -163,7 +160,6 @@ def ConfigureBlender(*, xBlenderCfg, dicSettings, sPrintPrefix=""):
 
 ############################################################################
 def UninstallAddOns(*, xBlenderCfg):
-
     print("=================================================================")
     print("Uninstalling add-ons\n")
 
@@ -202,7 +198,6 @@ def UninstallAddOns(*, xBlenderCfg):
 
 ############################################################################
 def InstallAddOns(*, xBlenderCfg, bForceDist, dicBlenderSettings):
-
     print("=================================================================")
     print("Installing add-ons\n")
 
@@ -232,7 +227,6 @@ def InstallAddOns(*, xBlenderCfg, bForceDist, dicBlenderSettings):
 
     # Loop over all specified addons
     for dicAddOn in lBlenderAddOns:
-
         # ignore empty dictionaries.
         # For example, if an add-on is not specified due to '__platform__' settings
         if len(dicAddOn) == 0:
@@ -329,7 +323,6 @@ def InitBlenderFromExecCfg(
     bAddOnsOnly=False,
     bCathSourceDist=False,
 ):
-
     lBlenderPath = []
     xParser = CAnyCML()
     pathLA = _xPrjCfg.pathLaunch
@@ -388,9 +381,14 @@ def InitBlenderFromExecCfg(
                 bCathSourceDist=bCathSourceDist,
             )
         except Exception as xEx:
+            pathRelCfg = pathCfg.relative_to(_xPrjCfg.pathMain)
             raise CAnyError_Message(
-                sMsg="Error initializing Blender {} for config file '{}' at path: {}".format(
-                    sBlenderVersion, pathCfg.as_posix(), sBlenderPath
+                sMsg=(
+                    f"Error initializing Blender {sBlenderVersion} for\n"
+                    f"  config file '{(pathRelCfg.as_posix())}'\n"
+                    f"  at path: {sBlenderPath}\n"
+                    f"Maybe you need to install Blender {sBlenderVersion} with 'cathy blender install [Blender ZIP-file]'\n"
+                    "You can download the various Blender versions from https://www.blender.org/download/"
                 ),
                 xChildEx=xEx,
             )
@@ -399,6 +397,7 @@ def InitBlenderFromExecCfg(
 
 
 # enddef
+
 
 ############################################################################
 def InitBlender(
@@ -540,6 +539,7 @@ def InitBlender(
 
 # enddef
 
+
 ############################################################################
 def Init(
     *,
@@ -554,7 +554,6 @@ def Init(
     bAllConfigs: bool,
     bIsDevelopInstall=util.IsDevelopInstall(),
 ):
-
     lPrjCfgs = []
 
     if bAllConfigs is True:
@@ -564,7 +563,6 @@ def Init(
         # endfor
 
     else:
-
         xPrjCfg = CProjectConfig()
 
         if sPathProject is None and sConfig is None:
