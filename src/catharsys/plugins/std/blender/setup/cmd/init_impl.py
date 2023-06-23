@@ -284,13 +284,13 @@ def InstallAddOns(*, xBlenderCfg, bForceDist, dicBlenderSettings):
             print(">> Replacing current add-on link: {}".format(sPathAddOnLink))
             link.unlink(sPathAddOnLink)
         elif pathAddOnLink.is_dir():
-            print(">> Removing directory: {sPathAddOnLink}")
+            print(f">> Removing directory: {sPathAddOnLink}")
             # When a config is copied including the _blender directory, the links are copied
             # as empty folders. Delete folder to fix this issue and avoid an error when
             # symlink() is called below.
             shutil.rmtree(sPathAddOnLink)
-        else:
-            print(">> Removing file: {sPathAddOnLink}")
+        elif pathAddOnLink.is_file():
+            print(f">> Removing file: {sPathAddOnLink}")
             pathAddOnLink.unlink()
         # endif
 
