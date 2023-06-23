@@ -32,6 +32,7 @@ import json
 import tempfile
 import importlib
 import pip
+import shutil
 from pathlib import Path
 from packaging import version
 
@@ -277,11 +278,20 @@ def InstallAddOns(*, xBlenderCfg, bForceDist, dicBlenderSettings):
             raise RuntimeError("Unsupported add-on type '{}' for add-on '{}'".format(sType, sName))
         # endif addon type
 
-        pathAddOnLink = xBlenderCfg.pathAddOns / sName
-        sPathAddOnLink = pathAddOnLink.as_posix()
+        pathAddOnLink: Path = xBlenderCfg.pathAddOns / sName
+        sPathAddOnLink: str = pathAddOnLink.as_posix()
         if link.islink(sPathAddOnLink):
             print(">> Replacing current add-on link: {}".format(sPathAddOnLink))
             link.unlink(sPathAddOnLink)
+        elif pathAddOnLink.is_dir():
+            print(">> Removing directory: {sPathAddOnLink}")
+            # When a config is copied including the _blender directory, the links are copied
+            # as empty folders. Delete folder to fix this issue and avoid an error when
+            # symlink() is called below.
+            shutil.rmtree(sPathAddOnLink)
+        else:
+            print(">> Removing file: {sPathAddOnLink}")
+            pathAddOnLink.unlink()
         # endif
 
         link.symlink(pathAddOnSrc.as_posix(), sPathAddOnLink)
