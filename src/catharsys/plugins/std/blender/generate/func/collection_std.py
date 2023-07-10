@@ -287,12 +287,16 @@ def _CreatePerFolderHandler(
         # Check whether relative path is in include list
         rePath: re.Pattern
         bFound = False
+        # print(f"sPathRel: {sPathRel}")
         for rePath in lCrePathInclude:
+            # print(f"rePath: {rePath}")
             xMatch = rePath.match(sPathRel)
             if xMatch is not None:
+                # print("-> found")
                 bFound = True
                 break
             # endif
+            # print("-> not found")
         # endfor
         if bFound is False:
             return False
