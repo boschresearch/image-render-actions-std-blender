@@ -32,11 +32,12 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from anybase import shell
+from anybase.cls_process_handler import CProcessHandler
 from catharsys.decs.decorator_log import logFunctionCall
+
 
 #####################################################################
 class CBlenderConfig:
-
     pathBlender: Path = None
     pathBlenderProg: Path = None
     pathUser: Path = None
@@ -88,7 +89,6 @@ class CBlenderConfig:
 
     #####################################################################
     def __init__(self, *, sBlenderPath, sBlenderVersion, pathLA=None, sCondaEnvName):
-
         self.sBlenderVersion = sBlenderVersion
         self.pathBlender = Path(self._NormPath(sBlenderPath))
         if not self.pathBlender.exists():
@@ -185,10 +185,8 @@ class CBlenderConfig:
         bDoPrintOnError=True,
         bDoReturnStdOut=False,
         sPrintPrefix="",
-        funcPreStart: Optional[Callable[[list], None]] = None,
-        funcPostStart: Optional[Callable[[list, int], None]] = None,
+        xProcHandler: Optional[CProcessHandler] = None,
     ):
-
         sProgram: str = f"{self.sPathBlenderProg}"
 
         lProgArgs = []
@@ -239,8 +237,7 @@ class CBlenderConfig:
                 sPrintPrefix=sPrintPrefix,
                 dicEnv=dicEnv,
                 bReturnStdOut=True,
-                funcPreStart=funcPreStart,
-                funcPostStart=funcPostStart,
+                xProcHandler=xProcHandler,
             )
 
             return bOK, lLines
@@ -255,8 +252,7 @@ class CBlenderConfig:
                 sPrintPrefix=sPrintPrefix,
                 dicEnv=dicEnv,
                 bReturnStdOut=False,
-                funcPreStart=funcPreStart,
-                funcPostStart=funcPostStart,
+                xProcHandler=xProcHandler,
             )
 
             return bOK

@@ -53,11 +53,11 @@ import catharsys.plugins.std.blender
 from anybase import config, debug
 from anybase.cls_anycml import CAnyCML
 from anybase.cls_any_error import CAnyError_Message
+from anybase.cls_process_handler import CProcessHandler
 
 
 ############################################################################
 def StartBlender(_xPrjCfg, _lExecConfigFiles, _dicArgs):
-
     xParser = CAnyCML()
     xBlenderCfg = None
     sTrgVersion = _dicArgs["sVersion"]
@@ -139,6 +139,12 @@ def StartBlender(_xPrjCfg, _lExecConfigFiles, _dicArgs):
             # Therefore, the next best thing is to wait a couple of seconds and then output
             # some text that can be captured by the problem matcher.
 
+            xProcHandler = CProcessHandler(
+                _funcPostStart=debug.CreateHandler_CheckDebugPortOpen(
+                    _fTimeoutSeconds=fWaitSeconds, _sIp="127.0.0.1", _iPort=iPort
+                )
+            )
+
             xBlenderCfg.ExecBlender(
                 sCwd=pathCwd.as_posix(),
                 sPathBlendFile=sBlendFile,
@@ -149,9 +155,7 @@ def StartBlender(_xPrjCfg, _lExecConfigFiles, _dicArgs):
                 bDoPrintOnError=True,
                 bBackground=_dicArgs["bBackground"],
                 bNoWindowFocus=True,
-                funcPostStart=debug.CreateHandler_CheckDebugPortOpen(
-                    _fTimeoutSeconds=fWaitSeconds, _sIp="127.0.0.1", _iPort=iPort
-                ),
+                xProcHandler=xProcHandler,
             )
         # endwith
         break
@@ -167,7 +171,6 @@ def StartBlender(_xPrjCfg, _lExecConfigFiles, _dicArgs):
 
 ############################################################################
 def Start(_dicArgs):
-
     sPathProject = _dicArgs.get("sPathProject")
     sConfig = _dicArgs.get("sConfig")
 

@@ -36,11 +36,13 @@ else:
 import shutil
 import platform
 from pathlib import Path
+from typing import Optional
 
 from anybase import convert, debug, config
 from anybase import assertion
 from anybase import path as anypath
 from anybase.cls_any_error import CAnyError, CAnyError_Message, CAnyError_TaskMessage
+from anybase.cls_process_handler import CProcessHandler
 
 from catharsys.setup import util, conda
 import catharsys.plugins.std
@@ -54,6 +56,7 @@ from catharsys.config.cls_exec_lsf import CConfigExecLsf
 from catharsys.plugins.std.blender.config.cls_blender import CBlenderConfig
 from catharsys.plugins.std.blender.config.cls_exec_blender import CConfigExecBlender
 from catharsys.plugins.std.blender.config.cls_trial_blender import CConfigTrialBlender
+from catharsys.config.cls_project import CProjectConfig
 
 from catharsys.decs.decorator_ep import EntryPoint
 from catharsys.decs.decorator_log import logFunctionCall
@@ -62,7 +65,7 @@ from catharsys.util.cls_entrypoint_information import CEntrypointInformation
 
 #########################################################################################################
 @EntryPoint(CEntrypointInformation.EEntryType.EXE_PLUGIN)
-def StartJob(*, xPrjCfg, dicExec, dicArgs):
+def StartJob(*, xPrjCfg: CProjectConfig, dicExec: dict, dicArgs: dict):
     try:
         try:
             pathJobConfig = dicArgs["pathJobConfig"]
@@ -73,6 +76,8 @@ def StartJob(*, xPrjCfg, dicExec, dicArgs):
         except KeyError as xEx:
             raise CAnyError_Message(sMsg="Blender job argument '{}' missing".format(str(xEx)))
         # endtry
+
+        xProcHandler: CProcessHandler = dicArgs.get("xProcessHandler")
 
         # Blender data
         dicBlender = dicTrial.get("mBlender")
@@ -101,6 +106,7 @@ def StartJob(*, xPrjCfg, dicExec, dicArgs):
                 dicDebug=dicDebug,
                 pathJobConfig=pathJobConfig,
                 bPrintOutput=True,
+                xProcHandler=xProcHandler,
             )
 
         elif xExec.sType == "lsf":
@@ -114,6 +120,7 @@ def StartJob(*, xPrjCfg, dicExec, dicArgs):
                 sJobNameLong=sJobNameLong,
                 xLsfCfg=xLsf,
                 bPrintOutput=True,
+                xProcHandler=xProcHandler,
             )
         else:
             sExecFile = "?"
@@ -141,7 +148,15 @@ def StartJob(*, xPrjCfg, dicExec, dicArgs):
 ################################################################################################
 # Start rendering with standard suprocess call
 @logFunctionCall
-def _StartBlenderWithScript(*, xBlenderCfg, pathBlenderFile, pathJobConfig, dicDebug=None, bPrintOutput=True):
+def _StartBlenderWithScript(
+    *,
+    xBlenderCfg: CBlenderConfig,
+    pathBlenderFile: Path,
+    pathJobConfig: Path,
+    dicDebug: Optional[dict] = None,
+    bPrintOutput: bool = True,
+    xProcHandler: Optional[CProcessHandler] = None,
+):
     lScriptArgs = [pathJobConfig.as_posix()]
 
     if assertion.IsEnabled():
@@ -201,6 +216,12 @@ def _StartBlenderWithScript(*, xBlenderCfg, pathBlenderFile, pathJobConfig, dicD
 
     # endif
 
+    if xProcHandler is None:
+        xProcHandler = CProcessHandler(_funcPostStart=funcPostStart)
+    else:
+        xProcHandler.AddHandlerPostStart(funcPostStart)
+    # endif
+
     # Unfortunately, I cannot make Blender to output its stdout to the subprocess.Popen() pipe
     # while Blender is runnning. All stdout and stderr outputs only arrive after Blender
     # has been closed.
@@ -225,7 +246,7 @@ def _StartBlenderWithScript(*, xBlenderCfg, pathBlenderFile, pathJobConfig, dicD
             bDoPrintOnError=True,
             bDoReturnStdOut=True,
             sPrintPrefix="",
-            funcPostStart=funcPostStart,
+            xProcHandler=xProcHandler,
         )
     # endwith pathScript
 
@@ -247,6 +268,7 @@ def _LsfStartBlenderWithScript(
     sJobNameLong: str,
     xLsfCfg: CConfigExecLsf,
     bPrintOutput: bool = True,
+    xProcHandler: Optional[CProcessHandler] = None,
 ):
     # Only supported on Linux platforms
     if platform.system() != "Linux":
@@ -306,7 +328,12 @@ def _LsfStartBlenderWithScript(
     print("Submitting job '{0}'...".format(sJobNameLong))
 
     bOk, lStdOut = cathlsf.Execute(
-        _sJobName=sJobName, _xCfgExecLsf=xLsfCfg, _sScript=sScript, _bDoPrint=True, _bDoPrintOnError=True
+        _sJobName=sJobName,
+        _xCfgExecLsf=xLsfCfg,
+        _sScript=sScript,
+        _bDoPrint=True,
+        _bDoPrintOnError=True,
+        _xProcHandler=xProcHandler,
     )
 
     return {"bOK": bOk, "sOutput": "\n".join(lStdOut)}
