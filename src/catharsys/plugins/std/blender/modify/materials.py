@@ -31,8 +31,10 @@ import bpy
 import ison
 from . import util
 from anybase.cls_any_error import CAnyError_Message
+from anybase import convert
 
 from catharsys.decs.decorator_log import logFunctionCall
+
 
 # concentrate print functionality for further generic logging concept
 def _Print(_sMsg: str):
@@ -43,7 +45,6 @@ def _Print(_sMsg: str):
 
 ############################################################################################
 def ModifyMaterials(_dicModifyMaterials, sMode="INIT", dicVars=None):
-
     if _dicModifyMaterials is None:
         return
     # endif
@@ -77,6 +78,12 @@ def ModifyMaterials(_dicModifyMaterials, sMode="INIT", dicVars=None):
                     raise CAnyError_Message(sMsg=f"Modifier for material '{xMaterial.name}' is missing 'sDTI' element")
                 # endif
 
+                bEnabled = convert.DictElementToBool(dicMod, "bEnabled", bDefault=True)
+                if bEnabled is False:
+                    _Print(f"-- DISABLED: NOT applying modifier '{sModType}'")
+                    continue
+                # endif
+
                 lApplyModes = dicMod.get("lApplyModes", ["INIT"])
                 if sMode not in lApplyModes:
                     _Print(f"-- {sMode}: NOT applying modifier '{sModType}'")
@@ -106,5 +113,6 @@ def ModifyMaterials(_dicModifyMaterials, sMode="INIT", dicVars=None):
         # endtry
 
     # endfor material
+
 
 # enddef

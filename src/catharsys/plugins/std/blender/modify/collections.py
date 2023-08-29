@@ -28,6 +28,7 @@
 
 import bpy
 
+from anybase import convert
 from anybase.cls_any_error import CAnyError_Message
 import ison
 from . import util
@@ -55,6 +56,11 @@ def ModifyCollection(_clnX, _lMods, sMode="INIT", dicVars=None):
         sModType = dicMod.get("sDTI")
         if sModType is None:
             raise CAnyError_Message(sMsg=f"Modifier for collection '{_clnX.name}' is missing 'sDTI' element")
+        # endif
+
+        bEnabled = convert.DictElementToBool(dicMod, "bEnabled", bDefault=True)
+        if bEnabled is False:
+            continue
         # endif
 
         lApplyModes = dicMod.get("lApplyModes", ["INIT"])

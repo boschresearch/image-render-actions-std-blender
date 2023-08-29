@@ -29,6 +29,7 @@
 import bpy
 import ison
 
+from anybase import convert
 from anybase.cls_any_error import CAnyError_Message
 from . import util
 
@@ -48,7 +49,6 @@ def _Print(_sMsg: str):
 ############################################################################################
 @logFunctionCall
 def ModifyScene(_scnX, _lMods, sMode="INIT", dicVars=None):
-
     if _lMods is None:
         return
     # endif
@@ -61,6 +61,12 @@ def ModifyScene(_scnX, _lMods, sMode="INIT", dicVars=None):
         sModType = dicMod.get("sDTI")
         if sModType is None:
             raise CAnyError_Message(sMsg=f"Modifier for scene '{_scnX.name}' is missing 'sDTI' element")
+        # endif
+
+        bEnabled = convert.DictElementToBool(dicMod, "bEnabled", bDefault=True)
+        if bEnabled is False:
+            _Print(f"-- DISABLED: NOT applying modifier '{sModType}'")
+            continue
         # endif
 
         lApplyModes = dicMod.get("lApplyModes", ["INIT"])
@@ -89,7 +95,6 @@ def ModifyScene(_scnX, _lMods, sMode="INIT", dicVars=None):
 
 ############################################################################################
 def ModifyScenes(_dicModifyScenes, sMode="INIT", dicVars=None):
-
     if _dicModifyScenes is None:
         return
     # endif
