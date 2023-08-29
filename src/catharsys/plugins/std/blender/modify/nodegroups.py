@@ -29,6 +29,7 @@
 import bpy
 
 from anybase.cls_any_error import CAnyError_Message
+from anybase import convert
 from . import util
 
 from catharsys.decs.decorator_log import logFunctionCall
@@ -50,6 +51,12 @@ def ModifyNodeTree(_ngX, _lMods, sMode="INIT", dicVars=None):
             raise CAnyError_Message(sMsg=f"Modifier for node group '{_ngX.name}' is missing 'sDTI' element")
         # endif
         
+        bEnabled = convert.DictElementToBool(dicMod, "bEnabled", bDefault=True)
+        if bEnabled is False:
+            _Print(f"-- DISABLED: NOT applying modifier '{sModType}'")
+            continue
+        # endif
+
         lApplyModes = dicMod.get("lApplyModes", ["INIT"])
         if sMode not in lApplyModes:
             _Print(f"-- {sMode}: NOT applying modifier '{sModType}'")

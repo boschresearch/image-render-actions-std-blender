@@ -26,6 +26,7 @@
 # </LICENSE>
 ###
 
+from anybase import convert
 from anybase.cls_any_error import CAnyError_Message
 import ison
 from . import util
@@ -45,6 +46,11 @@ def Evaluate(_dicData, sMode="INIT", dicVars={}):
         sEvalType = dicEval.get("sDTI")
         if sEvalType is None:
             raise RuntimeError("Element 'sDTI' missing for evaluator for variable id '{}'".format(sVarId))
+        # endif
+
+        bEnabled = convert.DictElementToBool(dicEval, "bEnabled", bDefault=True)
+        if bEnabled is False:
+            continue
         # endif
 
         lApplyModes = dicEval.get("lApplyModes", ["INIT"])

@@ -30,6 +30,7 @@ import bpy
 import mathutils
 
 from anybase.cls_any_error import CAnyError, CAnyError_Message
+from anybase import convert
 import ison
 from . import util
 
@@ -58,6 +59,12 @@ def ModifyObject(_objX, _lMods, sMode="INIT", dicVars=None):
         sModType = dicMod.get("sDTI")
         if sModType is None:
             raise CAnyError_Message(sMsg=f"Modifier for object '{_objX.name}' is missing 'sDTI' element")
+        # endif
+
+        bEnabled = convert.DictElementToBool(dicMod, "bEnabled", bDefault=True)
+        if bEnabled is False:
+            _Print(f"-- DISABLED: NOT applying modifier '{sModType}' to object: {_objX.name}")
+            continue
         # endif
 
         lApplyModes = dicMod.get("lApplyModes", ["INIT"])

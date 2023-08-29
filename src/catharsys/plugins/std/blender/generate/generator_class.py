@@ -31,6 +31,7 @@ import ison
 import anyblend
 from anybase.cls_any_error import CAnyError_Message
 from anybase.util import DictRecursiveUpdate
+from anybase import convert
 from catharsys.decs.decorator_log import logFunctionCall
 from collections import defaultdict
 from . import util
@@ -46,7 +47,6 @@ def _Print(_sMsg: str):
 
 ############################################################################################
 def GenerateInProgram(_dicData: dict, *, sMode: str = "INIT", dicVars: dict = {}) -> dict[str, str]:
-
     dicResult = {}
 
     for sVarId in _dicData:
@@ -66,6 +66,11 @@ def GenerateInProgram(_dicData: dict, *, sMode: str = "INIT", dicVars: dict = {}
                 raise RuntimeError(
                     f"Element {(iGenIdx+1)} of '{sVarId}' generator list is not a dictionary: '{dicGen}'"
                 )
+            # endif
+
+            bEnabled = convert.DictElementToBool(dicGen, "bEnabled", bDefault=True)
+            if bEnabled is False:
+                continue
             # endif
 
             # copy locals and globals from dicData to modifier groups
@@ -104,7 +109,6 @@ def GenerateInProgram(_dicData: dict, *, sMode: str = "INIT", dicVars: dict = {}
 ############################################################################################
 @logFunctionCall
 def GenerateObject(_dicObj, dicVars=None) -> dict[str, str]:
-
     dicGenObj = defaultdict(list)
 
     sFilePath = None
@@ -114,7 +118,7 @@ def GenerateObject(_dicObj, dicVars=None) -> dict[str, str]:
     # endif
 
     # General parameters that all generate objects configs share
-    bEnabled = _dicObj.get("bEnabled", True) is True
+    bEnabled = convert.DictElementToBool(_dicObj, "bEnabled", bDefault=True)
     if bEnabled:
         try:
             sDti = None
@@ -169,7 +173,6 @@ def GenerateObject(_dicObj, dicVars=None) -> dict[str, str]:
 ############################################################################################
 @logFunctionCall
 def GenerateCollection(_dicCln, dicVars=None) -> dict[str, str]:
-
     dicClnObj = defaultdict(list)
 
     sFilePath = None
@@ -179,7 +182,7 @@ def GenerateCollection(_dicCln, dicVars=None) -> dict[str, str]:
     # endif
 
     # General parameters that all generate objects configs share
-    bEnabled = _dicCln.get("bEnabled", True) is True
+    bEnabled = convert.DictElementToBool(_dicCln, "bEnabled", bDefault=True)
     if bEnabled:
         try:
             sDti = None

@@ -30,6 +30,7 @@ import copy
 import ison
 import anybase
 import anybase.config
+from anybase import convert
 from anybase.cls_anycml import CAnyCML
 from anybase.cls_any_error import CAnyError_Message
 from . import util as modutil
