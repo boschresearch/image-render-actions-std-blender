@@ -243,6 +243,12 @@ def RndPlaceObjOnSurf(_clnX, _dicMod, **kwargs):
         fMinHorizViewAngleSep_deg (float, optional, default=0.0):
             The minimal horizontal view angle separation in degrees of the generated points.
 
+        bFilterPolygons (bool, optional, default=false, only version 2.0):
+            If true, weights all polygon vertices by the camera FoV and camera distance constraints.
+            In this way, polygons that are outside the camera FoV or distance constraints will not
+            be used for finding randomized points. This speeds up the search for points dramatically.
+            Only works if the target surface has more than 4 polygons.
+
         bUseCameraFov (bool, optional, default=false):
             Constrains points to the camera field-of-view, if set to true.
             If the camera has been created with AnyCam, the FoV is obtained from the
@@ -364,6 +370,7 @@ def RndPlaceObjOnSurf(_clnX, _dicMod, **kwargs):
     fMinDist = convert.DictElementToFloat(_dicMod, "fMinimalDistance", fDefault=0.0)
     fMaxDist = convert.DictElementToFloat(_dicMod, "fMaximalDistance", fDefault=math.inf)
     fMinHorizViewAngleSep_deg = convert.DictElementToFloat(_dicMod, "fMinHorizViewAngleSep_deg", fDefault=0.0)
+    bFilterPolygons = convert.DictElementToBool(_dicMod, "bFilterPolygons", bDefault=False)
     bUseCameraFov = convert.DictElementToBool(_dicMod, "bUseCameraFov", bDefault=False)
     lCamFovBorderAngle_deg = convert.DictElementToFloatList(
         _dicMod, "lCamFovBorderAngle_deg", iLen=2, lDefault=[0.0, 0.0]
@@ -595,6 +602,7 @@ def RndPlaceObjOnSurf(_clnX, _dicMod, **kwargs):
             xInstances=xPlaceInst,
             xObstacles=xObstacles,
             iMaxTrials=iMaxTrials,
+            bFilterPolygons=bFilterPolygons,
         )
     else:
         dicPnts = points.GetRndPointsOnSurface(
@@ -654,6 +662,7 @@ def RndPlaceObjOnSurf(_clnX, _dicMod, **kwargs):
 
 
 # enddef
+
 
 ################################################################################
 def MoveObjectToCollection(_clnX, _dicMod, **kwargs):
