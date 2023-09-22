@@ -325,7 +325,7 @@ def _LsfStartBlenderWithScript(
         blender -noaudio -b {sBlenderFile} -P {sScriptFile} -- {sScriptArgs}
     """
 
-    print("Submitting job '{0}'...".format(sJobNameLong))
+    # print("Submitting job '{0}'...".format(sJobNameLong))
 
     bOk, lStdOut = cathlsf.Execute(
         _sJobName=sJobName,
