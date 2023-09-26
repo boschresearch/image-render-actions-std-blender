@@ -53,6 +53,7 @@ from catharsys.plugins.std.blender.util import camera as cbu_cam
 from catharsys.plugins.std.blender.animate import objects as animobj
 import catharsys.util as cathutil
 import catharsys.util.config as cathcfg
+from catharsys.config.cls_project import CProjectConfig
 
 from catharsys.decs.decorator_log import logFunctionCall
 from anybase.dec.cls_const_keyword_namespace import constKeywordNamespace
@@ -209,13 +210,13 @@ class CRenderOutputType:
 
 class CRender:
     ################################################################################
-    def __init__(self, *, xPrjCfg, dicCfg, sDtiCapCfg):
+    def __init__(self, *, xPrjCfg: CProjectConfig, dicCfg: dict, sDtiCapCfg: str):
         self.bIsInitialized: bool = False
         self.bDoRender: bool = False
         self.bDoOverwrite: bool = False
         self.bDoSaveRenderFile: bool = False
 
-        self.xPrjCfg = xPrjCfg
+        self.xPrjCfg: CProjectConfig = xPrjCfg
         self.dicCfg = copy.deepcopy(dicCfg)
         self.dicCap: dict = None
         self.dicRndOut: dict = None
@@ -970,6 +971,9 @@ class CRender:
     ##############################################################
     def _ExportLabelData(self, _sPath, _iTrgFrame, _bUpdateLabelData3d: bool = True, _bEvalBoxes2d: bool = False):
         if self.sRenderOutType == "anytruth/label":
+            pathExData: Path = self.xPrjCfg.pathProduction / "AT_CommonData"
+            pathExData.mkdir(parents=True, exist_ok=True)
+
             sFpLabel = os.path.join(_sPath, "Frame_{0:04d}.json".format(_iTrgFrame))
             self.Print("Exporting label types to: {0}".format(sFpLabel))
             anytruth.ops_labeldb.ExportAppliedLabelTypes(
@@ -978,6 +982,7 @@ class CRender:
                 bOverwrite=False,
                 bUpdateLabelData3d=_bUpdateLabelData3d,
                 bEvalBoxes2d=_bEvalBoxes2d,
+                _pathExData=pathExData,
             )
 
         elif self.sRenderOutType == "anytruth/pos3d":
