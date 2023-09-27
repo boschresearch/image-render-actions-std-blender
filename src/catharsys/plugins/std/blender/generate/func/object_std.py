@@ -125,7 +125,7 @@ def LoadObject(_dicObj, **kwargs):
 
 
 ############################################################################################
-def _DoImportObjectObj(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = None):
+def _DoImportObjectAny(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = None):
     fScaleFactor: float = convert.DictElementToFloat(_dicObj, "fScaleFactor", bDoRaise=False)
     lLocation: list[float] = convert.DictElementToFloatList(_dicObj, "lLocation", iLen=3, lDefault=[0.0, 0.0, 0.0])
     lRotationEuler_deg: list[float] = convert.DictElementToFloatList(
@@ -154,7 +154,7 @@ def _DoImportObjectObj(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = No
 
     ############################################################################################################
     # Process
-    objIn = anyobj.ImportObjectObj(
+    objIn = anyobj.ImportObjectAny(
         _pathFile=_pathFile,
         _sNewName=_sObjectName,
         _fScaleFactor=fScaleFactor,
@@ -166,7 +166,17 @@ def _DoImportObjectObj(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = No
     )
 
     if bDoSmoothSurface is True:
-        anyobj.SmoothObjectSurface_VoxelRemesh(objIn, fSmoothSurfaceVoxelSize)
+        if objIn.type == "EMPTY":
+            lChildren: list[str] = anyobj.GetObjectChildrenNames(objIn, bRecursive=True)
+            for sChild in lChildren:
+                objX: bpy.types.Object = bpy.data.objects[sChild]
+                if objX.type == "MESH":
+                    anyobj.SmoothObjectSurface_VoxelRemesh(objX, fSmoothSurfaceVoxelSize)
+                # endif
+            # endfor
+        elif objIn.type == "MESH":
+            anyobj.SmoothObjectSurface_VoxelRemesh(objIn, fSmoothSurfaceVoxelSize)
+        # endif
     # endif
 
     return objIn
@@ -176,7 +186,7 @@ def _DoImportObjectObj(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = No
 
 
 ############################################################################################
-def ImportObjectObj(_dicObj, **kwargs):
+def ImportObjectAny(_dicObj, **kwargs):
     xCtx = bpy.context
 
     sFilePath: str = convert.DictElementToString(_dicObj, "sFilePath")
@@ -191,13 +201,15 @@ def ImportObjectObj(_dicObj, **kwargs):
         raise RuntimeError(f"File path does not reference a file: {(pathFile.as_posix())}")
     # endif
 
-    if pathFile.suffix != ".obj":
-        raise RuntimeError(f"File type '{pathFile.suffix}' not supported")
+    lSupportedTypes: list[str] = [".obj", ".fbx"]
+    if pathFile.suffix not in lSupportedTypes:
+        sSupTypes: str = ", ".join(lSupportedTypes)
+        raise RuntimeError(f"File type '{pathFile.suffix}' not supported. Supported types are: [{sSupTypes}]")
     # endif
 
     collection.MakeRootLayerCollectionActive(xCtx)
 
-    return _DoImportObjectObj(pathFile, _dicObj, _sObjectName=sObjectName)
+    return _DoImportObjectAny(pathFile, _dicObj, _sObjectName=sObjectName)
 
 
 # enddef

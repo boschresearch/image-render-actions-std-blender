@@ -48,9 +48,10 @@ import anytruth.ops_labeldb as atops
 
 import ison
 from ...modify import collections as modcln
-from .object_std import _DoImportObjectObj
+from .object_std import _DoImportObjectAny
 from anyblend import tools as anytools
 from anyblend import viewlayer as anyvl
+from anyblend import object as anyobj
 
 
 ############################################################################################
@@ -253,6 +254,7 @@ def _CreatePerFolderHandler(
     _sObjectParsCfgName: str = None,
     _lRePathInclude: list[str] = [".+"],
     _lRePathExclude: Optional[list[str]] = None,
+    _lFileSuffixes: list[str] = [".obj", ".fbx"],
 ):
     lCrePathInclude: list[re.Pattern] = []
     for sRe in _lRePathInclude:
@@ -319,7 +321,7 @@ def _CreatePerFolderHandler(
         sParentPath = _pathTop.parent.as_posix()
         dicParentCfg = _dicFolderCfg.get(sParentPath)
         if isinstance(dicParentCfg, dict):
-            dicCfg = dicParentCfg
+            dicCfg = copy.deepcopy(dicParentCfg)
         # endif
 
         if isinstance(_sObjectParsCfgName, str):
@@ -344,7 +346,7 @@ def _CreatePerFolderHandler(
         # endif
 
         for pathFile in _pathTop.iterdir():
-            if not pathFile.is_file() or pathFile.suffix != ".obj":
+            if not pathFile.is_file() or pathFile.suffix not in _lFileSuffixes:
                 continue
             # endif
 
@@ -385,9 +387,14 @@ def ImportFolderTypeHierarchy(_dicCln, **kwargs):
     # endif
 
     sPerFolderConfigFilename: str = convert.DictElementToString(_dicCln, "sPerFolderConfigFilename", bDoRaise=False)
+    lIncludeFileSuffix: list[str] = convert.DictElementToStringList(
+        _dicCln, "lIncludeFileSuffix", lDefault=[".obj", ".fbx"]
+    )
 
     lRePathInclude: list[str] = convert.DictElementToStringList(_dicCln, "lRePathInclude", lDefault=[".+"])
     lRePathExclude: list[str] = convert.DictElementToStringList(_dicCln, "lRePathExclude", bDoRaise=False)
+
+    bJoinObjectGroups: bool = convert.DictElementToBool(_dicCln, "bJoinObjectGroups", bDefault=True)
 
     bDoSpreadObjects: bool = False
     dicSO: dict = _dicCln.get("mSpreadObjects")
@@ -432,7 +439,13 @@ def ImportFolderTypeHierarchy(_dicCln, **kwargs):
     dicTypeCfg = atu.GetTypeDictFromFolderHierarchy(
         pathTop,
         _CreatePerFolderHandler(
-            pathTop, dicTypePathList, dicFolderCfg, sPerFolderConfigFilename, lRePathInclude, lRePathExclude
+            pathTop,
+            dicTypePathList,
+            dicFolderCfg,
+            sPerFolderConfigFilename,
+            lRePathInclude,
+            lRePathExclude,
+            lIncludeFileSuffix,
         ),
     )
 
@@ -462,10 +475,33 @@ def ImportFolderTypeHierarchy(_dicCln, **kwargs):
             anyutil.DictRecursiveUpdate(dicCfg, dicObjCfg)
         # endif
 
+        sNewObj: str
         for pathObj in lObjPaths:
             collection.SetActiveCollection(bpy.context, sClnName)
-            objIn = _DoImportObjectObj(pathObj, dicCfg)
-            lObjCreated.append(objIn.name)
+            objIn = _DoImportObjectAny(pathObj, dicCfg)
+            if objIn.type == "EMPTY":
+                if bJoinObjectGroups is True:
+                    sNewObj = anyobj.JoinHierarchyToObject(objIn)
+                else:
+                    lChildren: list[str] = anyobj.GetObjectChildrenNames(objIn, bRecursive=True)
+                    for sChild in lChildren:
+                        objChild: bpy.types.Object = bpy.data.objects[sChild]
+                        if objChild.type == "MESH":
+                            lObjCreated.append(sChild)
+                            objChild.parent = objIn.parent
+                        # endif
+                    # endfor
+                    anyobj.RemoveObjectHierarchy(objIn)
+                    sNewObj = None
+                # endif
+            elif objIn.type == "MESH":
+                sNewObj = objIn.name
+            else:
+                sNewObj = None
+            # endif
+            if sNewObj is not None:
+                lObjCreated.append(sNewObj)
+            # endif
         # endfor
     # endfor
 
