@@ -125,12 +125,13 @@ def LoadObject(_dicObj, **kwargs):
 
 
 ############################################################################################
-def _DoImportObjectAny(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = None):
+def _DoImportObjectAny(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = None) -> list[str]:
     fScaleFactor: float = convert.DictElementToFloat(_dicObj, "fScaleFactor", bDoRaise=False)
     lLocation: list[float] = convert.DictElementToFloatList(_dicObj, "lLocation", iLen=3, lDefault=[0.0, 0.0, 0.0])
     lRotationEuler_deg: list[float] = convert.DictElementToFloatList(
         _dicObj, "lRotationEuler_deg", iLen=3, lDefault=None, bDoRaise=False
     )
+    bJoinObjectGroups: bool = convert.DictElementToBool(_dicObj, "bJoinObjectGroups", bDefault=False)
 
     bDoSetOrigin: bool = False
     dicSetOrigin: dict = _dicObj.get("mSetOrigin")
@@ -154,7 +155,7 @@ def _DoImportObjectAny(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = No
 
     ############################################################################################################
     # Process
-    objIn = anyobj.ImportObjectAny(
+    lObjIn = anyobj.ImportObjectAny(
         _pathFile=_pathFile,
         _sNewName=_sObjectName,
         _fScaleFactor=fScaleFactor,
@@ -163,30 +164,34 @@ def _DoImportObjectAny(_pathFile: Path, _dicObj: dict, *, _sObjectName: str = No
         _sSetOriginCenter=sSetOriginCenter,
         _lLocation=lLocation,
         _lRotationEuler_deg=lRotationEuler_deg,
+        _bDoJoinObjects=bJoinObjectGroups,
     )
 
     if bDoSmoothSurface is True:
-        if objIn.type == "EMPTY":
-            lChildren: list[str] = anyobj.GetObjectChildrenNames(objIn, bRecursive=True)
-            for sChild in lChildren:
-                objX: bpy.types.Object = bpy.data.objects[sChild]
-                if objX.type == "MESH":
-                    anyobj.SmoothObjectSurface_VoxelRemesh(objX, fSmoothSurfaceVoxelSize)
-                # endif
-            # endfor
-        elif objIn.type == "MESH":
-            anyobj.SmoothObjectSurface_VoxelRemesh(objIn, fSmoothSurfaceVoxelSize)
-        # endif
+        for sObjIn in lObjIn:
+            objIn = bpy.data.objects[sObjIn]
+            if objIn.type == "EMPTY":
+                lChildren: list[str] = anyobj.GetObjectChildrenNames(objIn, bRecursive=True)
+                for sChild in lChildren:
+                    objX: bpy.types.Object = bpy.data.objects[sChild]
+                    if objX.type == "MESH":
+                        anyobj.SmoothObjectSurface_VoxelRemesh(objX, fSmoothSurfaceVoxelSize)
+                    # endif
+                # endfor
+            elif objIn.type == "MESH":
+                anyobj.SmoothObjectSurface_VoxelRemesh(objIn, fSmoothSurfaceVoxelSize)
+            # endif
+        # endfor
     # endif
 
-    return objIn
+    return lObjIn
 
 
 # enddef
 
 
 ############################################################################################
-def ImportObjectAny(_dicObj, **kwargs):
+def ImportObjectAny(_dicObj, **kwargs) -> list[str]:
     xCtx = bpy.context
 
     sFilePath: str = convert.DictElementToString(_dicObj, "sFilePath")
@@ -201,7 +206,7 @@ def ImportObjectAny(_dicObj, **kwargs):
         raise RuntimeError(f"File path does not reference a file: {(pathFile.as_posix())}")
     # endif
 
-    lSupportedTypes: list[str] = [".obj", ".fbx"]
+    lSupportedTypes: list[str] = [".obj", ".fbx", ".glb", ".gltf"]
     if pathFile.suffix not in lSupportedTypes:
         sSupTypes: str = ", ".join(lSupportedTypes)
         raise RuntimeError(f"File type '{pathFile.suffix}' not supported. Supported types are: [{sSupTypes}]")

@@ -388,13 +388,14 @@ def ImportFolderTypeHierarchy(_dicCln, **kwargs):
 
     sPerFolderConfigFilename: str = convert.DictElementToString(_dicCln, "sPerFolderConfigFilename", bDoRaise=False)
     lIncludeFileSuffix: list[str] = convert.DictElementToStringList(
-        _dicCln, "lIncludeFileSuffix", lDefault=[".obj", ".fbx"]
+        _dicCln, "lIncludeFileSuffix", lDefault=[".obj", ".fbx", ".glb", ".gltf"]
     )
 
     lRePathInclude: list[str] = convert.DictElementToStringList(_dicCln, "lRePathInclude", lDefault=[".+"])
     lRePathExclude: list[str] = convert.DictElementToStringList(_dicCln, "lRePathExclude", bDoRaise=False)
 
     bJoinObjectGroups: bool = convert.DictElementToBool(_dicCln, "bJoinObjectGroups", bDefault=True)
+    _dicCln["bJoinObjectGroups"] = bJoinObjectGroups
 
     bDoSpreadObjects: bool = False
     dicSO: dict = _dicCln.get("mSpreadObjects")
@@ -475,33 +476,16 @@ def ImportFolderTypeHierarchy(_dicCln, **kwargs):
             anyutil.DictRecursiveUpdate(dicCfg, dicObjCfg)
         # endif
 
-        sNewObj: str
+        # sNewObj: str
         for pathObj in lObjPaths:
             collection.SetActiveCollection(bpy.context, sClnName)
-            objIn = _DoImportObjectAny(pathObj, dicCfg)
-            if objIn.type == "EMPTY":
-                if bJoinObjectGroups is True:
-                    sNewObj = anyobj.JoinHierarchyToObject(objIn)
-                else:
-                    lChildren: list[str] = anyobj.GetObjectChildrenNames(objIn, bRecursive=True)
-                    for sChild in lChildren:
-                        objChild: bpy.types.Object = bpy.data.objects[sChild]
-                        if objChild.type == "MESH":
-                            lObjCreated.append(sChild)
-                            objChild.parent = objIn.parent
-                        # endif
-                    # endfor
-                    anyobj.RemoveObjectHierarchy(objIn)
-                    sNewObj = None
-                # endif
-            elif objIn.type == "MESH":
-                sNewObj = objIn.name
-            else:
-                sNewObj = None
-            # endif
-            if sNewObj is not None:
-                lObjCreated.append(sNewObj)
-            # endif
+            lObjIn = _DoImportObjectAny(pathObj, dicCfg)
+            for sObjName in lObjIn:
+                objX = bpy.data.objects[sObjName]
+                collection.MoveObjectToActiveCollection(bpy.context, objX)
+            # endfor
+
+            lObjCreated.extend(lObjIn)
         # endfor
     # endfor
 
