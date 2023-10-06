@@ -44,6 +44,9 @@ from anyblend.compositor.cls_fileout import CFileOut
 from catharsys.plugins.std.blender.config.cls_settings_cycles import (
     CConfigSettingsCycles,
 )
+from catharsys.plugins.std.blender.config.cls_settings_eevee import (
+    CConfigSettingsEevee,
+)
 from catharsys.plugins.std.blender.config.cls_settings_render import (
     CConfigSettingsRender,
 )
@@ -76,6 +79,7 @@ class CRenderSettings:
     def __init__(self) -> None:
         self.mMain = dict()
         self.mCycles = dict()
+        self.mEevee = dict()
         self.mRender = dict()
 
     # end def
@@ -140,6 +144,7 @@ class NsConfigDTI:
     sDtiPclSelection: str = "point-cloud/selection:1"
     sDtiRenderSettingsMain: str = "/catharsys/blender/render/settings/main:1"
     sDtiRenderSettingsCycles: str = "/catharsys/blender/render/settings/cycles:1"
+    sDtiRenderSettingsEevee: str = "/catharsys/blender/render/settings/eevee:1"
     sDtiRenderSettingsRender: str = "/catharsys/blender/render/settings/render:1"
 
 
@@ -539,9 +544,12 @@ class CRender:
             for dicSettings in _lSettings:
                 bIsMain = cathcfg.CheckConfigType(dicSettings, NsConfigDTI.sDtiRenderSettingsMain)["bOK"]
                 bIsCycles = cathcfg.CheckConfigType(dicSettings, NsConfigDTI.sDtiRenderSettingsCycles)["bOK"]
+                bIsEevee = cathcfg.CheckConfigType(dicSettings, NsConfigDTI.sDtiRenderSettingsEevee)["bOK"]
                 bIsRender = cathcfg.CheckConfigType(dicSettings, NsConfigDTI.sDtiRenderSettingsRender)["bOK"]
                 if bIsCycles is True:
                     xSetting.mCycles = copy.deepcopy(dicSettings)
+                elif bIsEevee is True:
+                    xSetting.mEevee = copy.deepcopy(dicSettings)
                 elif bIsRender is True:
                     xSetting.mRender = copy.deepcopy(dicSettings)
                 elif bIsMain is True:
@@ -559,17 +567,22 @@ class CRender:
     ##############################################################
     # Combine different render settings
     def _GetCombinedCfgRenderSettings(
-        self, _dicRndOut, dicCycles=None, dicRender=None, dicMain=None
+        self, _dicRndOut, dicCycles=None, dicEevee=None, dicRender=None, dicMain=None
     ) -> CRenderSettings:
         xSelfRenderSettings: CRenderSettings = self._GetCfgRenderSettings(self.lRndSettings)
         xDictRenderSettings: CRenderSettings = self._GetCfgRenderSettings(_dicRndOut.get("lSettings"))
 
         xSelfRenderSettings.mMain.update(xDictRenderSettings.mMain)
         xSelfRenderSettings.mCycles.update(xDictRenderSettings.mCycles)
+        xSelfRenderSettings.mEevee.update(xDictRenderSettings.mEevee)
         xSelfRenderSettings.mRender.update(xDictRenderSettings.mRender)
 
         if dicCycles is not None:
             xSelfRenderSettings.mCycles.update(dicCycles)
+        # endif
+
+        if dicEevee is not None:
+            xSelfRenderSettings.mEevee.update(dicEevee)
         # endif
 
         if dicRender is not None:
@@ -591,6 +604,11 @@ class CRender:
             self.xCfgCycles.Apply(self.xCtx)
         # endif
 
+        if len(_xRenderSettings.mEevee.keys()) > 0:
+            self.xCfgEevee = CConfigSettingsEevee(_xRenderSettings.mEevee)
+            self.xCfgEevee.Apply(self.xCtx)
+        # endif
+
         if len(_xRenderSettings.mRender.keys()) > 0:
             self.xCfgRender = CConfigSettingsRender(_xRenderSettings.mRender)
             self.xCfgRender.Apply(self.xCtx)
@@ -599,9 +617,9 @@ class CRender:
     # enddef
 
     ##############################################################
-    def _ApplyCombinedCfgRenderSettings(self, _dicRndOut, dicCycles=None, dicRender=None, dicMain=None):
+    def _ApplyCombinedCfgRenderSettings(self, _dicRndOut, dicCycles=None, dicEevee=None, dicRender=None, dicMain=None):
         xSettings: CRenderSettings = self._GetCombinedCfgRenderSettings(
-            _dicRndOut, dicCycles=dicCycles, dicRender=dicRender, dicMain=dicMain
+            _dicRndOut, dicCycles=dicCycles, dicEevee=dicEevee, dicRender=dicRender, dicMain=dicMain
         )
         # self.Print("\nApplying render settings:\n{}\n\n".format(dicSet))
         self._ApplyCfgRenderSettings(xSettings)
