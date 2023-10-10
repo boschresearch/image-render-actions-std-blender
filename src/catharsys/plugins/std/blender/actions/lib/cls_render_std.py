@@ -224,7 +224,8 @@ class CRenderStandard(CRender):
                 lRndMod = dicRndOut.get("lModifier")
                 if lRndMod is not None:
                     xCfgRndMod = CConfigModifyList(lRndMod)
-                    xCfgRndMod.Apply()
+                    dicConstVars, dicRefVars = self._GetRuntimeVars()
+                    xCfgRndMod.Apply(sMode="INIT", dicConstVars=dicConstVars, dicRefVars=dicRefVars)
                 # endif
 
                 lOutputFilenames = dicFiles["lOutputFilenames"]

@@ -368,6 +368,20 @@ class CRender:
         if self.lRndOutTypes is None:
             raise Exception("No render output types defined")
         # endif
+
+        # If the render output type configs have modifier lists, we need to add
+        # local and global variables of the render output config to these modifiers.
+        for dicRndOut in self.lRndOutTypes:
+            lModifier: list[dict] = dicRndOut.get("lModifier")
+            if lModifier is None:
+                continue
+            # endif
+            dicMod: dict
+            for dicMod in lModifier:
+                ison.util.data.AddLocalGlobalVars(dicMod, dicRndOut, bAllowOverwrite=False, bThrowOnDisallow=False)
+            # endfor
+        # endfor
+
         xRenderSettings: CRenderSettings = self._GetCfgRenderSettings(self.lRndSettings)
         self._ApplyCfgRenderSettings(xRenderSettings)
 

@@ -43,16 +43,13 @@ def ObjectInfo(_dicEval, **kwargs):
     sObjectId = _dicEval.get("sObjectId")
     if sObjectId is None:
         raise RuntimeError(
-            "Element 'sObjectId' missing in evaluator "
-            "'/catharsys/modify/evaluate/object/info:1' configuration"
+            "Element 'sObjectId' missing in evaluator " "'/catharsys/modify/evaluate/object/info:1' configuration"
         )
     # endif
 
     objX = bpy.data.objects.get(sObjectId)
     if objX is None:
-        raise RuntimeError(
-            "Object with id '{}' not found in blender file".format(sObjectId)
-        )
+        raise RuntimeError("Object with id '{}' not found in blender file".format(sObjectId))
     # endif
 
     lBoundBox = [objX.matrix_world @ mathutils.Vector(x) for x in objX.bound_box]
@@ -84,9 +81,7 @@ def LookAtRotZ(_dicEval, **kwargs):
     # print("=================================================")
     # print(_dicEval)
 
-    lOrigin = convert.DictElementToFloatList(
-        _dicEval, "lOrigin", iLen=3, lDefault=[0.0, 0.0, 0.0]
-    )
+    lOrigin = convert.DictElementToFloatList(_dicEval, "lOrigin", iLen=3, lDefault=[0.0, 0.0, 0.0])
     lTarget = convert.DictElementToFloatList(_dicEval, "lTarget", iLen=3)
 
     sUnit = _dicEval.get("sUnit", "rad")
@@ -142,18 +137,18 @@ def RunPyScript(_dicEval, **kwargs):
 
     sScriptFilename: str = _dicEval.get("sScriptFilename")
     if sScriptFilename is None:
-        raise CAnyError_Message(
-            sMsg="No python script filename give in element 'sScriptFilename'"
-        )
+        raise CAnyError_Message(sMsg="No python script filename give in element 'sScriptFilename'")
     # endif
 
     pathScript = Path(sScriptFilename)
     if not pathScript.is_absolute():
-        sPath: str = _dicEval["__locals__"].get("path")
+        sPath: str = None
+        dicLocals: dict = _dicEval.get("__locals__")
+        if isinstance(dicLocals, dict):
+            sPath = dicLocals.get("path")
+        # endif
         if sPath is None:
-            raise CAnyError_Message(
-                sMsg="Filepath of evaluator JSON file is not stored in evaluator data"
-            )
+            raise CAnyError_Message(sMsg="Filepath of evaluator JSON file is not stored in evaluator data")
         # endif
 
         pathScript = Path(sPath) / sScriptFilename
@@ -161,9 +156,7 @@ def RunPyScript(_dicEval, **kwargs):
 
     if not pathScript.exists():
         raise CAnyError_Message(
-            sMsg="Python script '{}' not found at path: {}".format(
-                sScriptFilename, pathScript.as_posix()
-            )
+            sMsg="Python script '{}' not found at path: {}".format(sScriptFilename, pathScript.as_posix())
         )
     # endif
 
