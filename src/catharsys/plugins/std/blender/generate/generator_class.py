@@ -84,7 +84,7 @@ def GenerateInProgram(_dicData: dict, *, sMode: str = "INIT", dicVars: dict = {}
             # endif
 
             lApplyModes = dicGen.get("lApplyModes", ["INIT"])
-            if sMode not in lApplyModes:
+            if "*" not in lApplyModes and sMode not in lApplyModes:
                 print(f"> {sMode}: NOT applying generator '{sGenDti}'")
                 continue
             # endif

@@ -54,7 +54,7 @@ def Evaluate(_dicData, sMode="INIT", dicVars={}):
         # endif
 
         lApplyModes = dicEval.get("lApplyModes", ["INIT"])
-        if sMode not in lApplyModes:
+        if "*" not in lApplyModes and sMode not in lApplyModes:
             print(f"> {sMode}: NOT applying evaluator '{sEvalType}'")
             continue
         # endif

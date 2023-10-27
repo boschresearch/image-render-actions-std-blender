@@ -59,13 +59,22 @@ def Execute(_dicProgram, sMode="INIT", dicVars=None):
 
     lMods = dicProgram.get("lModifier")
     if lMods is None:
+        print("WARNING: No modifiers specified in program")
+        return
+    # endif
+
+    bEnabled = convert.DictElementToBool(dicProgram, "bEnabled", bDefault=True)
+    if bEnabled is False:
+        print("-- DISABLED: NOT applying modifier program to object")
         return
     # endif
 
     lApplyModes = dicProgram.get("lApplyModes", ["INIT", "FRAME_UPDATE"])
-    if sMode not in lApplyModes:
+    if "*" not in lApplyModes and sMode not in lApplyModes:
+        print(f"-- {sMode}: NOT applying program modifier. Specified modes are: {lApplyModes}")
         return
     # endif
+    print(f">> {sMode}: Applying program modifier")
 
     sFilePath = None
     dicLocals = dicProgram.get("__locals__")
