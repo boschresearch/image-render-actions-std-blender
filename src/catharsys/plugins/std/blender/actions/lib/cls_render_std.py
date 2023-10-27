@@ -250,6 +250,12 @@ class CRenderStandard(CRender):
                     # ######################################################
 
                     self._ApplyCfgAnnotation()
+
+                    if xCfgRndMod is not None:
+                        dicConstVars, dicRefVars = self._GetRuntimeVars()
+                        xCfgRndMod.Apply(sMode="POST_ANNOTATION", dicConstVars=dicConstVars, dicRefVars=dicRefVars)
+                    # endif
+
                 # endif
 
                 if xRndOutType.sSpecificType == NsSpecificTypesRenderOut.image_openGL:
