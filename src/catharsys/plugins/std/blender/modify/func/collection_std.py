@@ -60,6 +60,7 @@ if g_bInBlenderContext is True:
 # endif
 
 from anybase.cls_anycml import CAnyCML
+from anybase.cls_any_error import CAnyError, CAnyError_Message
 from anybase import convert
 from anybase import assertion
 from anybase import config
@@ -320,346 +321,352 @@ def RndPlaceObjOnSurf(_clnX, _dicMod, **kwargs):
 
     assertion.IsTrue(g_bInBlenderContext)
 
-    # Get required elements
-    lTrgObjNames = []
-    sTrgObjName = convert.DictElementToString(_dicMod, "sTargetObject", bDoRaise=False)
-    if isinstance(sTrgObjName, str):
-        lTrgObjNames.append(sTrgObjName)
-        sVexGrpName = convert.DictElementToString(_dicMod, "sVertexGroup", bDoRaise=False)
-        if isinstance(sVexGrpName, str):
-            lVexGrpNames = [sVexGrpName]
-        else:
-            lVexGrpNames = None
-        # endif
-
-    else:
-        lTrgObjNames = convert.DictElementToStringList(_dicMod, "lTargetObjects")
-        lVexGrpNames = convert.DictElementToStringList(_dicMod, "lVertexGroups", bDoRaise=False)
-        if not isinstance(lVexGrpNames, list):
-            sVertexGroup = convert.DictElementToString(_dicMod, "sVertexGroup", bDoRaise=False)
-            if isinstance(sVertexGroup, str):
-                lVexGrpNames = [sVertexGroup] * len(lTrgObjNames)
+    try:
+        # Get required elements
+        lTrgObjNames = []
+        sTrgObjName = convert.DictElementToString(_dicMod, "sTargetObject", bDoRaise=False)
+        if isinstance(sTrgObjName, str):
+            lTrgObjNames.append(sTrgObjName)
+            sVexGrpName = convert.DictElementToString(_dicMod, "sVertexGroup", bDoRaise=False)
+            if isinstance(sVexGrpName, str):
+                lVexGrpNames = [sVexGrpName]
             else:
                 lVexGrpNames = None
             # endif
+
         else:
-            if len(lVexGrpNames) != len(lTrgObjNames):
-                raise RuntimeError("Different numbers of target object names and vertex groups")
+            lTrgObjNames = convert.DictElementToStringList(_dicMod, "lTargetObjects")
+            lVexGrpNames = convert.DictElementToStringList(_dicMod, "lVertexGroups", bDoRaise=False)
+            if not isinstance(lVexGrpNames, list):
+                sVertexGroup = convert.DictElementToString(_dicMod, "sVertexGroup", bDoRaise=False)
+                if isinstance(sVertexGroup, str):
+                    lVexGrpNames = [sVertexGroup] * len(lTrgObjNames)
+                else:
+                    lVexGrpNames = None
+                # endif
+            else:
+                if len(lVexGrpNames) != len(lTrgObjNames):
+                    raise RuntimeError("Different numbers of target object names and vertex groups")
+                # endif
             # endif
         # endif
-    # endif
 
-    # Optional elements
-    sParentObjName = convert.DictElementToString(_dicMod, "sParentObject", bDoRaise=False)
+        # Optional elements
+        sParentObjName = convert.DictElementToString(_dicMod, "sParentObject", bDoRaise=False)
 
-    iSeed = convert.DictElementToInt(_dicMod, "iSeed", iDefault=0)
-    iMaxTrials = convert.DictElementToInt(_dicMod, "iMaxTrials", iDefault=20)
-    lObjectTypes = _dicMod.get("lObjectTypes")
-    iObjectInstanceCount = convert.DictElementToInt(_dicMod, "iObjectInstanceCount", iDefault=0)
-    bCopyInstanceParentCollection: bool = convert.DictElementToBool(
-        _dicMod, "bCopyInstanceParentCollection", bDefault=False
-    )
+        iSeed = convert.DictElementToInt(_dicMod, "iSeed", iDefault=0)
+        iMaxTrials = convert.DictElementToInt(_dicMod, "iMaxTrials", iDefault=20)
+        lObjectTypes = _dicMod.get("lObjectTypes")
+        iObjectInstanceCount = convert.DictElementToInt(_dicMod, "iObjectInstanceCount", iDefault=0)
+        bCopyInstanceParentCollection: bool = convert.DictElementToBool(
+            _dicMod, "bCopyInstanceParentCollection", bDefault=False
+        )
 
-    sInstanceCollectionName = convert.DictElementToString(
-        _dicMod, "sInstanceCollectionName", sDefault=f"{_clnX.name} instantiated"
-    )
-    sInstanceType = convert.DictElementToString(_dicMod, "sInstanceType", sDefault="CHILD_OBJ")
-    bInstDrawBoundingBoxes = convert.DictElementToBool(_dicMod, "bInstDrawBoundingBoxes", bDefault=False)
-    bObstDrawBoundingBoxes = convert.DictElementToBool(_dicMod, "bObstDrawBoundingBoxes", bDefault=False)
+        sInstanceCollectionName = convert.DictElementToString(
+            _dicMod, "sInstanceCollectionName", sDefault=f"{_clnX.name} instantiated"
+        )
+        sInstanceType = convert.DictElementToString(_dicMod, "sInstanceType", sDefault="CHILD_OBJ")
+        bInstDrawBoundingBoxes = convert.DictElementToBool(_dicMod, "bInstDrawBoundingBoxes", bDefault=False)
+        bObstDrawBoundingBoxes = convert.DictElementToBool(_dicMod, "bObstDrawBoundingBoxes", bDefault=False)
 
-    fMinDist = convert.DictElementToFloat(_dicMod, "fMinimalDistance", fDefault=0.0)
-    fMaxDist = convert.DictElementToFloat(_dicMod, "fMaximalDistance", fDefault=math.inf)
-    fMinHorizViewAngleSep_deg = convert.DictElementToFloat(_dicMod, "fMinHorizViewAngleSep_deg", fDefault=0.0)
-    bFilterPolygons = convert.DictElementToBool(_dicMod, "bFilterPolygons", bDefault=False)
-    bUseCameraFov = convert.DictElementToBool(_dicMod, "bUseCameraFov", bDefault=False)
-    lCamFovBorderAngle_deg = convert.DictElementToFloatList(
-        _dicMod, "lCamFovBorderAngle_deg", iLen=2, lDefault=[0.0, 0.0]
-    )
-    lCamDistRange = convert.DictElementToFloatList(_dicMod, "lCamDistRange", iLen=2, lDefault=[0.0, math.inf])
+        fMinDist = convert.DictElementToFloat(_dicMod, "fMinimalDistance", fDefault=0.0)
+        fMaxDist = convert.DictElementToFloat(_dicMod, "fMaximalDistance", fDefault=math.inf)
+        fMinHorizViewAngleSep_deg = convert.DictElementToFloat(_dicMod, "fMinHorizViewAngleSep_deg", fDefault=0.0)
+        bFilterPolygons = convert.DictElementToBool(_dicMod, "bFilterPolygons", bDefault=False)
+        bUseCameraFov = convert.DictElementToBool(_dicMod, "bUseCameraFov", bDefault=False)
+        lCamFovBorderAngle_deg = convert.DictElementToFloatList(
+            _dicMod, "lCamFovBorderAngle_deg", iLen=2, lDefault=[0.0, 0.0]
+        )
+        lCamDistRange = convert.DictElementToFloatList(_dicMod, "lCamDistRange", iLen=2, lDefault=[0.0, math.inf])
 
-    bUseBoundBox = convert.DictElementToBool(_dicMod, "bUseBoundBox", bDefault=False)
-    xInstanceOrigin = _dicMod.get("xInstanceOrigin")
-    if not isinstance(xInstanceOrigin, str):
-        xInstanceOrigin = convert.DictElementToFloatList(_dicMod, "xInstanceOrigin", iLen=3, lDefault=[0.0, 0.0, -0.5])
-    # endif
-
-    random.seed(iSeed)
-    lValidInstTypes = ["OBJECT", "CHILD_OBJ", "CHILD_CLN"]
-
-    # ##############################################################################
-    # Random instance rotation range
-    lInstRndRotEulerRange_rad = None
-    lInstRndRotEulerRange_deg = _dicMod.get("lInstRndRotEulerRange_deg")
-    if isinstance(lInstRndRotEulerRange_deg, list):
-        if len(lInstRndRotEulerRange_deg) != 3:
-            raise RuntimeError(
-                "Expect 'lInstRndRotEulerRange_deg' element to be a list of three lists of two float values"
-            )
+        bUseBoundBox = convert.DictElementToBool(_dicMod, "bUseBoundBox", bDefault=False)
+        xInstanceOrigin = _dicMod.get("xInstanceOrigin")
+        if not isinstance(xInstanceOrigin, str):
+            xInstanceOrigin = convert.DictElementToFloatList(_dicMod, "xInstanceOrigin", iLen=3, lDefault=[0.0, 0.0, -0.5])
         # endif
-        lInstRndRotEulerRange_rad = []
-        for lRange_deg in lInstRndRotEulerRange_deg:
-            if not isinstance(lRange_deg, list):
+
+        random.seed(iSeed)
+        lValidInstTypes = ["OBJECT", "CHILD_OBJ", "CHILD_CLN"]
+
+        # ##############################################################################
+        # Random instance rotation range
+        lInstRndRotEulerRange_rad = None
+        lInstRndRotEulerRange_deg = _dicMod.get("lInstRndRotEulerRange_deg")
+        if isinstance(lInstRndRotEulerRange_deg, list):
+            if len(lInstRndRotEulerRange_deg) != 3:
                 raise RuntimeError(
                     "Expect 'lInstRndRotEulerRange_deg' element to be a list of three lists of two float values"
                 )
             # endif
-            lRange_rad = []
-            for xValue in lRange_deg:
-                lRange_rad.append(math.radians(convert.ToFloat(xValue)))
+            lInstRndRotEulerRange_rad = []
+            for lRange_deg in lInstRndRotEulerRange_deg:
+                if not isinstance(lRange_deg, list):
+                    raise RuntimeError(
+                        "Expect 'lInstRndRotEulerRange_deg' element to be a list of three lists of two float values"
+                    )
+                # endif
+                lRange_rad = []
+                for xValue in lRange_deg:
+                    lRange_rad.append(math.radians(convert.ToFloat(xValue)))
+                # endfor
+                lInstRndRotEulerRange_rad.append(lRange_rad)
             # endfor
-            lInstRndRotEulerRange_rad.append(lRange_rad)
-        # endfor
-    # endif
+        # endif
 
-    lInstRndRotOriginOffset = convert.DictElementToFloatList(
-        _dicMod, "lInstRndRotOriginOffset", iLen=3, lDefault=[0.0, 0.0, -0.5]
-    )
+        lInstRndRotOriginOffset = convert.DictElementToFloatList(
+            _dicMod, "lInstRndRotOriginOffset", iLen=3, lDefault=[0.0, 0.0, -0.5]
+        )
 
-    # ##############################################################################
-    # Initialize obstacle instances
-    lObstacles = _dicMod.get("lObstacles")
-    xObstacles = CInstances(_sName=f"{_clnX.name} Obstacles")
-    if bUseBoundBox is True and isinstance(lObstacles, list):
-        for dicObst in lObstacles:
-            if not isinstance(dicObst, dict):
-                raise RuntimeError("Elements of obstacles list must be dictionaries")
-            # endif
-
-            objX = None
-            clnX = None
-
-            if "sObj" in dicObst:
-                sName = convert.DictElementToString(dicObst, "sObj")
-                objX = bpy.data.objects.get(sName)
-                if objX is None:
-                    raise RuntimeError(f"Obstacle object '{sName}' not available")
+        # ##############################################################################
+        # Initialize obstacle instances
+        lObstacles = _dicMod.get("lObstacles")
+        xObstacles = CInstances(_sName=f"{_clnX.name} Obstacles")
+        if bUseBoundBox is True and isinstance(lObstacles, list):
+            for dicObst in lObstacles:
+                if not isinstance(dicObst, dict):
+                    raise RuntimeError("Elements of obstacles list must be dictionaries")
                 # endif
 
-                xObstacles.AddObject(_objX=objX)
+                objX = None
+                clnX = None
 
-            elif "sCln" in dicObst:
-                sName = convert.DictElementToString(dicObst, "sCln")
-                clnX = bpy.data.collections.get(sName)
-                if clnX is None:
-                    raise RuntimeError(f"Obstacle collection '{sName}' not available")
-                # endif
-                sInstType = convert.DictElementToString(dicObst, "sInstType")
-                if sInstType == "OBJECT":
-                    xObstacles.AddCollection(_clnX=clnX)
-                elif sInstType == "CHILD_OBJ":
-                    xObstacles.AddCollectionElements(_clnX=clnX, _bChildCollectionsAsInstances=False)
-                elif sInstType == "CHILD_CLN":
-                    xObstacles.AddCollectionElements(_clnX=clnX, _bChildCollectionsAsInstances=True)
+                if "sObj" in dicObst:
+                    sName = convert.DictElementToString(dicObst, "sObj")
+                    objX = bpy.data.objects.get(sName)
+                    if objX is None:
+                        raise RuntimeError(f"Obstacle object '{sName}' not available")
+                    # endif
+
+                    xObstacles.AddObject(_objX=objX)
+
+                elif "sCln" in dicObst:
+                    sName = convert.DictElementToString(dicObst, "sCln")
+                    clnX = bpy.data.collections.get(sName)
+                    if clnX is None:
+                        raise RuntimeError(f"Obstacle collection '{sName}' not available")
+                    # endif
+                    sInstType = convert.DictElementToString(dicObst, "sInstType")
+                    if sInstType == "OBJECT":
+                        xObstacles.AddCollection(_clnX=clnX)
+                    elif sInstType == "CHILD_OBJ":
+                        xObstacles.AddCollectionElements(_clnX=clnX, _bChildCollectionsAsInstances=False)
+                    elif sInstType == "CHILD_CLN":
+                        xObstacles.AddCollectionElements(_clnX=clnX, _bChildCollectionsAsInstances=True)
+                    else:
+                        raise RuntimeError(f"Element 'sInstType' must be one of: {lValidInstTypes}")
+                    # endif
+
                 else:
-                    raise RuntimeError(f"Element 'sInstType' must be one of: {lValidInstTypes}")
+                    raise RuntimeError("Neither 'sObj' nor 'sCln' are given in obstacle specification")
                 # endif
-
-            else:
-                raise RuntimeError("Neither 'sObj' nor 'sCln' are given in obstacle specification")
-            # endif
-        # endfor obstacles
-    # endif
-
-    if bObstDrawBoundingBoxes is True:
-        for xObst in xObstacles:
-            objBox: bpy.types.Object = xObst.xBoundBox.CreateBlenderObject(
-                _sName=f"_box_{xObst.sName}", _xCollection=collection.GetRootCollection(bpy.context)
-            )
-            objBox.hide_render = True
-    # endif
-
-    lOffset = convert.DictElementToFloatList(_dicMod, "lOffset", iLen=3, lDefault=[0.0, 0.0, 0.0])
-    vOffset = mathutils.Vector(lOffset)
-
-    xInstances = CInstances(_sName=_clnX.name)
-    if sInstanceType == "OBJECT":
-        xInstances.AddCollection(_clnX=_clnX, _lObjectTypes=lObjectTypes)
-    elif sInstanceType == "CHILD_OBJ":
-        xInstances.AddCollectionElements(_clnX=_clnX, _bChildCollectionsAsInstances=False, _lObjectTypes=lObjectTypes)
-    elif sInstanceType == "CHILD_CLN":
-        xInstances.AddCollectionElements(_clnX=_clnX, _bChildCollectionsAsInstances=True, _lObjectTypes=lObjectTypes)
-    else:
-        raise RuntimeError(f"Element 'sInstanceType' has to be one of: {lValidInstTypes}")
-    # endif
-
-    iObjCnt = len(xInstances)
-
-    if iObjCnt == 0:
-        return
-    # endif
-
-    # ######################################################################################
-    # Create random instances
-
-    def SetInstanceParentCollection(_xInst: _CInstance, _clnParentInst: bpy.types.Collection) -> bpy.types.Collection:
-        global g_bHasAnyTruth
-
-        clnParent = _xInst.GetParentCollection()
-        sParentName = clnParent.name
-        if ";" in sParentName:
-            sParentName = sParentName[sParentName.index(";") + 1 :]
-        # endif
-        sInstClnName = f"{_clnParentInst.name};{sParentName}"
-        clnInst = bpy.data.collections.get(sInstClnName)
-        if clnInst is None:
-            clnInst = collection.CreateCollection(bpy.context, sInstClnName, clnParent=_clnParentInst)
+            # endfor obstacles
         # endif
 
-        if g_bHasAnyTruth is True:
-            ops_labeldb.CopyCollectionLabel(_sClnNameTrg=clnInst.name, _sClnNameSrc=clnParent.name)
-        # endif
-
-        return clnInst
-
-    # enddef
-
-    def CreateSetInstanceParentObjectHandler(_sParentObjName: str):
-        def Handler(_xInst: _CInstance, _clnParentInst: bpy.types.Collection):
-            # print(f"Setting parent '{_sParentObjName}' for instance '{_xInst.sName}'")
-            _xInst.ParentTo(_sParentObjName, _bKeepTransform=True)
-
-        # enddef
-        return Handler
-
-    # enddef
-
-    funcProcInstance = None
-    if isinstance(sParentObjName, str):
-        funcProcInstance = CreateSetInstanceParentObjectHandler(sParentObjName)
-    # endif
-
-    xPlaceInst: CInstances
-    if iObjectInstanceCount > 0:
-        if bCopyInstanceParentCollection is True:
-            xPlaceInst = xInstances.CreateRandomInstances(
-                _iInstanceCount=iObjectInstanceCount,
-                _bLinked=True,
-                _sName=sInstanceCollectionName,
-                _funcGetTargetCollection=SetInstanceParentCollection,
-                _funcProcInstance=funcProcInstance,
-            )
-        else:
-            xPlaceInst = xInstances.CreateRandomInstances(
-                _iInstanceCount=iObjectInstanceCount,
-                _bLinked=True,
-                _sName=sInstanceCollectionName,
-                _funcProcInstance=funcProcInstance,
-            )
-        # endif
-
-        # Exclude source collection
-        collection.ExcludeCollection(bpy.context, _clnX.name, _bExclude=True)
-    else:
-        xPlaceInst = xInstances
-    # endif
-
-    # ######################################################################################
-    # Randomly rotate instances
-    if lInstRndRotEulerRange_rad is not None:
-        xInst: _CInstance
-        for xInst in xPlaceInst:
-            lAngles_rad = [
-                random.uniform(lInstRndRotEulerRange_rad[i][0], lInstRndRotEulerRange_rad[i][1]) for i in range(3)
-            ]
-            xInst.RotateEuler(_lEulerAngles=lAngles_rad, _bAnglesInDeg=False, _lOriginOffset=lInstRndRotOriginOffset)
-        # endfor
-        viewlayer.Update()
-    # endif
-
-    iObjCnt = len(xPlaceInst)
-    # print(f"Using {iObjCnt} instances")
-    # logFunctionCall.PrintLog(f"Found {iObjCnt} objects in collection {_clnX.name}")
-
-    if fMinHorizViewAngleSep_deg > 0.0 or bUseCameraFov is True:
-        dicCamera = camops.GetAnyCam(bpy.context, bpy.context.scene.camera.name)
-        lCamFov_deg = camops.GetAnyCamFov_deg(dicCamera["objCam"], dicCamera["dicAnyCam"])
-        matCamWorld = dicCamera["objCam"].matrix_world
-    else:
-        matCamWorld = None
-        lCamFov_deg = None
-    # endif
-
-    iMajorVersion = config.CheckDti(
-        _dicMod.get("sDTI"), "/catharsys/blender/modify/collection/object-placement/rnd-surf"
-    )["lCfgVer"][0]
-
-    if iMajorVersion == 2:
-        dicPnts = points.GetRndPointsOnSurfaceUniformly(
-            lTrgObjNames=lTrgObjNames,
-            iPntCnt=iObjCnt,
-            lVexGrpNames=lVexGrpNames,
-            fMinDist=fMinDist,
-            fMaxDist=fMaxDist,
-            iSeed=iSeed + 1,
-            fMinHorizViewAngleSep_deg=fMinHorizViewAngleSep_deg,
-            bUseCameraFov=bUseCameraFov,
-            lCamFovBorder_deg=lCamFovBorderAngle_deg,
-            lCamFov_deg=lCamFov_deg,
-            lCamDistRange=lCamDistRange,
-            matCamWorld=matCamWorld,
-            bUseBoundBox=bUseBoundBox,
-            xInstanceOrigin=xInstanceOrigin,
-            xInstances=xPlaceInst,
-            xObstacles=xObstacles,
-            iMaxTrials=iMaxTrials,
-            bFilterPolygons=bFilterPolygons,
-        )
-    else:
-        dicPnts = points.GetRndPointsOnSurface(
-            lTrgObjNames=lTrgObjNames,
-            iPntCnt=iObjCnt,
-            lVexGrpNames=lVexGrpNames,
-            fMinDist=fMinDist,
-            fMaxDist=fMaxDist,
-            iSeed=iSeed + 1,
-            fMinHorizViewAngleSep_deg=fMinHorizViewAngleSep_deg,
-            bUseCameraFov=bUseCameraFov,
-            lCamFovBorder_deg=lCamFovBorderAngle_deg,
-            lCamFov_deg=lCamFov_deg,
-            lCamDistRange=lCamDistRange,
-            matCamWorld=matCamWorld,
-            bUseBoundBox=bUseBoundBox,
-            xInstanceOrigin=xInstanceOrigin,
-            xInstances=xPlaceInst,
-            xObstacles=xObstacles,
-            iMaxTrials=iMaxTrials,
-        )
-
-    iFoundCnt = sum([1 if x is not None else 0 for i, x in dicPnts.items()])
-
-    if iObjCnt > iFoundCnt:
-        print(f"WARNING: Only {iFoundCnt} of {iObjCnt} objects could be distributed")
-    # endif
-
-    if bInstDrawBoundingBoxes is True and isinstance(sInstanceCollectionName, str):
-        clnTrg = bpy.data.collections.get(sInstanceCollectionName)
-        if clnTrg is None:
-            clnTrg = collection.GetRootCollection(bpy.context)
-        # endif
-    # endif
-
-    # There may be less points than objects, if the minimal distance is too large.
-    for sName, vPos in dicPnts.items():
-        xInst = xPlaceInst[sName]
-        # print("Applying location to object '{}': {}".format(objX.name, tuple(objX.location)))
-
-        if vPos is None:
-            print(f"WARNING: Hiding object '{xInst.sName}'")
-            xInst.Hide(True)
-
-        else:
-            xInst.MoveLocation(vPos + vOffset)
-            if bInstDrawBoundingBoxes is True:
-                objBox: bpy.types.Object = xInst.xBoundBox.CreateBlenderObject(
-                    _sName=f"_box_{xInst.sName}", _xCollection=clnTrg
+        if bObstDrawBoundingBoxes is True:
+            for xObst in xObstacles:
+                objBox: bpy.types.Object = xObst.xBoundBox.CreateBlenderObject(
+                    _sName=f"_box_{xObst.sName}", _xCollection=collection.GetRootCollection(bpy.context)
                 )
                 objBox.hide_render = True
+        # endif
+
+        lOffset = convert.DictElementToFloatList(_dicMod, "lOffset", iLen=3, lDefault=[0.0, 0.0, 0.0])
+        vOffset = mathutils.Vector(lOffset)
+
+        xInstances = CInstances(_sName=_clnX.name)
+        if sInstanceType == "OBJECT":
+            xInstances.AddCollection(_clnX=_clnX, _lObjectTypes=lObjectTypes)
+        elif sInstanceType == "CHILD_OBJ":
+            xInstances.AddCollectionElements(_clnX=_clnX, _bChildCollectionsAsInstances=False, _lObjectTypes=lObjectTypes)
+        elif sInstanceType == "CHILD_CLN":
+            xInstances.AddCollectionElements(_clnX=_clnX, _bChildCollectionsAsInstances=True, _lObjectTypes=lObjectTypes)
+        else:
+            raise RuntimeError(f"Element 'sInstanceType' has to be one of: {lValidInstTypes}")
+        # endif
+
+        iObjCnt = len(xInstances)
+
+        if iObjCnt == 0:
+            return
+        # endif
+
+        # ######################################################################################
+        # Create random instances
+
+        def SetInstanceParentCollection(_xInst: _CInstance, _clnParentInst: bpy.types.Collection) -> bpy.types.Collection:
+            global g_bHasAnyTruth
+
+            clnParent = _xInst.GetParentCollection()
+            sParentName = clnParent.name
+            if ";" in sParentName:
+                sParentName = sParentName[sParentName.index(";") + 1 :]
+            # endif
+            sInstClnName = f"{_clnParentInst.name};{sParentName}"
+            clnInst = bpy.data.collections.get(sInstClnName)
+            if clnInst is None:
+                clnInst = collection.CreateCollection(bpy.context, sInstClnName, clnParent=_clnParentInst)
+            # endif
+
+            if g_bHasAnyTruth is True:
+                ops_labeldb.CopyCollectionLabel(_sClnNameTrg=clnInst.name, _sClnNameSrc=clnParent.name)
+            # endif
+
+            return clnInst
+
+        # enddef
+
+        def CreateSetInstanceParentObjectHandler(_sParentObjName: str):
+            def Handler(_xInst: _CInstance, _clnParentInst: bpy.types.Collection):
+                # print(f"Setting parent '{_sParentObjName}' for instance '{_xInst.sName}'")
+                _xInst.ParentTo(_sParentObjName, _bKeepTransform=True)
+
+            # enddef
+            return Handler
+
+        # enddef
+
+        funcProcInstance = None
+        if isinstance(sParentObjName, str):
+            funcProcInstance = CreateSetInstanceParentObjectHandler(sParentObjName)
+        # endif
+
+        xPlaceInst: CInstances
+        if iObjectInstanceCount > 0:
+            if bCopyInstanceParentCollection is True:
+                xPlaceInst = xInstances.CreateRandomInstances(
+                    _iInstanceCount=iObjectInstanceCount,
+                    _bLinked=True,
+                    _sName=sInstanceCollectionName,
+                    _funcGetTargetCollection=SetInstanceParentCollection,
+                    _funcProcInstance=funcProcInstance,
+                )
+            else:
+                xPlaceInst = xInstances.CreateRandomInstances(
+                    _iInstanceCount=iObjectInstanceCount,
+                    _bLinked=True,
+                    _sName=sInstanceCollectionName,
+                    _funcProcInstance=funcProcInstance,
+                )
+            # endif
+
+            # Exclude source collection
+            collection.ExcludeCollection(bpy.context, _clnX.name, _bExclude=True)
+        else:
+            xPlaceInst = xInstances
+        # endif
+
+        # ######################################################################################
+        # Randomly rotate instances
+        if lInstRndRotEulerRange_rad is not None:
+            xInst: _CInstance
+            for xInst in xPlaceInst:
+                lAngles_rad = [
+                    random.uniform(lInstRndRotEulerRange_rad[i][0], lInstRndRotEulerRange_rad[i][1]) for i in range(3)
+                ]
+                xInst.RotateEuler(_lEulerAngles=lAngles_rad, _bAnglesInDeg=False, _lOriginOffset=lInstRndRotOriginOffset)
+            # endfor
+            viewlayer.Update()
+        # endif
+
+        iObjCnt = len(xPlaceInst)
+        # print(f"Using {iObjCnt} instances")
+        # logFunctionCall.PrintLog(f"Found {iObjCnt} objects in collection {_clnX.name}")
+
+        if fMinHorizViewAngleSep_deg > 0.0 or bUseCameraFov is True:
+            dicCamera = camops.GetAnyCam(bpy.context, bpy.context.scene.camera.name)
+            lCamFov_deg = camops.GetAnyCamFov_deg(dicCamera["objCam"], dicCamera["dicAnyCam"])
+            matCamWorld = dicCamera["objCam"].matrix_world
+        else:
+            matCamWorld = None
+            lCamFov_deg = None
+        # endif
+
+        iMajorVersion = config.CheckDti(
+            _dicMod.get("sDTI"), "/catharsys/blender/modify/collection/object-placement/rnd-surf"
+        )["lCfgVer"][0]
+
+        if iMajorVersion == 2:
+            dicPnts = points.GetRndPointsOnSurfaceUniformly(
+                lTrgObjNames=lTrgObjNames,
+                iPntCnt=iObjCnt,
+                lVexGrpNames=lVexGrpNames,
+                fMinDist=fMinDist,
+                fMaxDist=fMaxDist,
+                iSeed=iSeed + 1,
+                fMinHorizViewAngleSep_deg=fMinHorizViewAngleSep_deg,
+                bUseCameraFov=bUseCameraFov,
+                lCamFovBorder_deg=lCamFovBorderAngle_deg,
+                lCamFov_deg=lCamFov_deg,
+                lCamDistRange=lCamDistRange,
+                matCamWorld=matCamWorld,
+                bUseBoundBox=bUseBoundBox,
+                xInstanceOrigin=xInstanceOrigin,
+                xInstances=xPlaceInst,
+                xObstacles=xObstacles,
+                iMaxTrials=iMaxTrials,
+                bFilterPolygons=bFilterPolygons,
+            )
+        else:
+            dicPnts = points.GetRndPointsOnSurface(
+                lTrgObjNames=lTrgObjNames,
+                iPntCnt=iObjCnt,
+                lVexGrpNames=lVexGrpNames,
+                fMinDist=fMinDist,
+                fMaxDist=fMaxDist,
+                iSeed=iSeed + 1,
+                fMinHorizViewAngleSep_deg=fMinHorizViewAngleSep_deg,
+                bUseCameraFov=bUseCameraFov,
+                lCamFovBorder_deg=lCamFovBorderAngle_deg,
+                lCamFov_deg=lCamFov_deg,
+                lCamDistRange=lCamDistRange,
+                matCamWorld=matCamWorld,
+                bUseBoundBox=bUseBoundBox,
+                xInstanceOrigin=xInstanceOrigin,
+                xInstances=xPlaceInst,
+                xObstacles=xObstacles,
+                iMaxTrials=iMaxTrials,
+            )
+
+        iFoundCnt = sum([1 if x is not None else 0 for i, x in dicPnts.items()])
+
+        if iObjCnt > iFoundCnt:
+            print(f"WARNING: Only {iFoundCnt} of {iObjCnt} objects could be distributed")
+        # endif
+
+        if bInstDrawBoundingBoxes is True and isinstance(sInstanceCollectionName, str):
+            clnTrg = bpy.data.collections.get(sInstanceCollectionName)
+            if clnTrg is None:
+                clnTrg = collection.GetRootCollection(bpy.context)
             # endif
         # endif
-    # endfor
 
-    viewlayer.Update()
+        # There may be less points than objects, if the minimal distance is too large.
+        for sName, vPos in dicPnts.items():
+            xInst = xPlaceInst[sName]
+            # print("Applying location to object '{}': {}".format(objX.name, tuple(objX.location)))
 
+            if vPos is None:
+                print(f"WARNING: Hiding object '{xInst.sName}'")
+                xInst.Hide(True)
+
+            else:
+                xInst.MoveLocation(vPos + vOffset)
+                if bInstDrawBoundingBoxes is True:
+                    objBox: bpy.types.Object = xInst.xBoundBox.CreateBlenderObject(
+                        _sName=f"_box_{xInst.sName}", _xCollection=clnTrg
+                    )
+                    objBox.hide_render = True
+                # endif
+            # endif
+        # endfor
+
+        viewlayer.Update()
+    except Exception as xEx:
+        import traceback
+        print(traceback.format_exc(), flush=True)
+
+        raise CAnyError_Message(sMsg="Error running random placement modifier", xChildEx=xEx)
+    # endtry
 
 # enddef
 
