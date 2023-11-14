@@ -94,7 +94,7 @@ class CRenderStandard(CRender):
                     ### DEBUG ######
                     # print("ApplyCfgAnnotation with bApplyFilePathsOnly=True")
                     ################
-                    self._ApplyCfgAnnotation(bApplyFilePathsOnly=True)
+                    self._ApplyCfgAnnotation(_bApplyFilePathsOnly=True)
 
                     ######################################################
                     # Get output filenames for current frame and config
@@ -279,7 +279,11 @@ class CRenderStandard(CRender):
                 ######################################################
                 # Export the label data to json
                 if xRndOutType.sMainType != NsMainTypesRenderOut.none:
-                    self._ExportLabelData(os.path.dirname(lOutNewFilenames[0]), self.iTargetFrame, False)
+                    self._ExportLabelData(
+                        os.path.dirname(lOutNewFilenames[0]),
+                        self.iTargetFrame,
+                        _bUpdateLabelData3d=False,
+                    )
                 # endif
                 ######################################################
 

@@ -33,7 +33,7 @@ import copy
 import gc
 
 import ison
-
+from typing import Optional
 from dataclasses import dataclass
 
 from anybase.cls_anyexcept import CAnyExcept
@@ -964,18 +964,29 @@ class CRender:
     ###########################################################
     # Apply label render settings after modifications, animations
     # and point clouds are loaded and applied
-    def _ApplyCfgAnnotation(self, bApplyFilePathsOnly=False):
+    def _ApplyCfgAnnotation(
+        self,
+        *,
+        _sPathTrgMain: Optional[str] = None,
+        _bApplyFilePathsOnly=False,
+    ):
         if self.bApplyAnnotation:
             # Disable auto-update of label data with frame change.
             anytruth.ops_labeldb.EnableAutoUpdateAnnotation(self.xCtx, False)
 
+            if _sPathTrgMain is not None:
+                sPathTrgMain = _sPathTrgMain
+            else:
+                sPathTrgMain = self.sPathTrgMain
+            # endif
+
             anytruth.ops_labeldb.ApplyLabelRenderSettings(
                 self.xCtx,
                 sAnnotationType=self.sAnnotationType,
-                sPathTrgMain=self.sPathTrgMain,
+                sPathTrgMain=sPathTrgMain,
                 xCompFileOut=self.xCompFileOut,
                 sFilename="Exp_#######",
-                bApplyFilePathsOnly=bApplyFilePathsOnly,
+                bApplyFilePathsOnly=_bApplyFilePathsOnly,
                 bEvalBoxes2d=self.bLabelEvalBoxes2d,
             )
         # endif
@@ -1001,12 +1012,26 @@ class CRender:
     # enddef
 
     ##############################################################
-    def _ExportLabelData(self, _sPath, _iTrgFrame, _bUpdateLabelData3d: bool = True, _bEvalBoxes2d: bool = False):
+    def _ExportLabelData(
+        self,
+        _sPath,
+        _iTrgFrame,
+        *,
+        _sFrameNamePattern: Optional[str] = None,
+        _bUpdateLabelData3d: bool = True,
+        _bEvalBoxes2d: bool = False,
+    ):
+        if _sFrameNamePattern is not None:
+            sFrameNamePattern = _sFrameNamePattern
+        else:
+            sFrameNamePattern = "Frame_{0:04d}.json"
+        # endif
+
         if self.sRenderOutType == "anytruth/label":
             pathExData: Path = self.xPrjCfg.pathProduction / "AT_CommonData"
             pathExData.mkdir(parents=True, exist_ok=True)
 
-            sFpLabel = os.path.join(_sPath, "Frame_{0:04d}.json".format(_iTrgFrame))
+            sFpLabel = os.path.join(_sPath, sFrameNamePattern.format(_iTrgFrame))
             self.Print("Exporting label types to: {0}".format(sFpLabel))
             anytruth.ops_labeldb.ExportAppliedLabelTypes(
                 bpy.context,
@@ -1018,7 +1043,7 @@ class CRender:
             )
 
         elif self.sRenderOutType == "anytruth/pos3d":
-            sFpLabel = os.path.join(_sPath, "Frame_{0:04d}.json".format(_iTrgFrame))
+            sFpLabel = os.path.join(_sPath, sFrameNamePattern.format(_iTrgFrame))
             self.Print("Exporting pos3d info to: {0}".format(sFpLabel))
             anytruth.ops_labeldb.ExportPos3dInfo(bpy.context, sFpLabel)
         # endif
