@@ -33,7 +33,9 @@ from timeit import default_timer as timer
 from datetime import datetime
 
 import os
-from .cls_render import CRender, CRenderSettings
+from .cls_render import CRender, CRenderSettings, CRenderOutputType
+from .cls_render import NsConfigDTI
+from .cls_render import NsMainTypesRenderOut, NsSpecificTypesRenderOut
 
 from .cls_rsexp import CRsExp
 from anybase.cls_any_error import CAnyError_Message
@@ -48,7 +50,6 @@ import anycam
 
 
 class CRenderRollingShutter(CRender):
-
     ##############################################################
     def __init__(self, *, xPrjCfg, dicCfg):
         super(CRenderRollingShutter, self).__init__(xPrjCfg=xPrjCfg, dicCfg=dicCfg, sDtiCapCfg="capture/rs:1")
@@ -57,7 +58,6 @@ class CRenderRollingShutter(CRender):
 
     ##############################################################
     def Process(self):
-
         if self.bIsInitialized is False:
             raise CAnyError_Message(sMsg="Rendering is not initialized")
         # endif
@@ -68,6 +68,8 @@ class CRenderRollingShutter(CRender):
 
         # Get render output config
         dicRndOut = self.lRndOutTypes[0]
+        xRndOutType: CRenderOutputType = self._GetRenderOutType(dicRndOut, NsConfigDTI.sDtiRenderOutputAll)
+        self.Print("Render output type: {}".format(dicRndOut.get("sDTI")))
 
         # Initialize render by executing generators, setting camera, etc.
         # This call can take quite some time, if complex objects are generated.
@@ -151,7 +153,6 @@ class CRenderRollingShutter(CRender):
         iTotalRoLoopCnt = iTrgFrameCnt * iRoLoopCnt
 
         while True:
-
             if iTrgFrame > self.iFrameLast:
                 break
             # endif
@@ -195,10 +196,6 @@ class CRenderRollingShutter(CRender):
                 self.Print("ERROR: Can not write log to file: {0}".format(sFpLog))
             # endtry
 
-            # apply render output settings
-            self._ApplyCfgRenderOutputFiles(dicRndOut)
-            self._ApplyCfgRenderOutputSettings(dicRndOut)
-
             ######################################################
             # Apply modifier of render output type
             xCfgRndMod = None
@@ -206,6 +203,22 @@ class CRenderRollingShutter(CRender):
             if lRndMod is not None:
                 xCfgRndMod = CConfigModifyList(lRndMod)
                 xCfgRndMod.Apply()
+            # endif
+
+            # apply render output settings
+            self._ApplyCfgRenderOutputFiles(dicRndOut, _sPathTrgMain=sPathRenderFrame)
+            self._ApplyCfgRenderOutputSettings(dicRndOut)
+
+            self._ApplyCfgAnnotation(_sPathTrgMain=sPathRenderFrame)
+
+            lOutNewFilenames = self.xCompFileOut.GetOutputFilenames(self.iTargetFrame)
+
+            ######################################################
+            # Apply render type modifiers that should be executed
+            # after the annotation has been applied.
+            if xCfgRndMod is not None:
+                dicConstVars, dicRefVars = self._GetRuntimeVars()
+                xCfgRndMod.Apply(sMode="POST_ANNOTATION", dicConstVars=dicConstVars, dicRefVars=dicRefVars)
             # endif
 
             ######################################################
@@ -222,7 +235,6 @@ class CRenderRollingShutter(CRender):
 
             # Set the base render path
             # Apply file out config to compositor
-            self.xCompFileOut.SetFileOut(sPathRenderFrame, self.lFileOut)
             sLog += "Using render path: {0}\n".format(sPathRenderFrame)
 
             # Loop over all exposures for frame
@@ -236,7 +248,6 @@ class CRenderRollingShutter(CRender):
             dTimeStart = timer()
             if xRsExp.StartReadOutLoop(iLoopOffset=iSubFrameOffset, iLoopStep=iSubFrameStep):
                 while True:
-
                     # Fast forward to first exposure that has not been rendered
                     bFinished = False
                     while True:
@@ -322,7 +333,6 @@ class CRenderRollingShutter(CRender):
 
                     # Perform the rendering
                     if self.bDoRender:
-
                         ##############################################################################
                         # Set the frame to render
                         self.xScn.frame_set(self.iSceneFrame)
@@ -332,6 +342,18 @@ class CRenderRollingShutter(CRender):
                         # Apply only those modifiers that support mode 'FRAME_UPDATE'
                         self._ApplyCfgModifier(sMode="FRAME_UPDATE")
 
+                        ######################################################
+                        # Export the label data to json
+                        if xRndOutType.sMainType != NsMainTypesRenderOut.none:
+                            self._ExportLabelData(
+                                os.path.dirname(lOutNewFilenames[0]),
+                                self.iSceneFrame,
+                                _bUpdateLabelData3d=False,
+                                _sFrameNamePattern="Exp_{0:07d}.json",
+                            )
+                        # endif
+                        ######################################################
+
                         ##############################################################################
                         if bTransformSceneToCameraFrame is True:
                             anycam.ops.TransformSceneToCameraFrame(xContext=self.xCtx)
@@ -340,6 +362,16 @@ class CRenderRollingShutter(CRender):
                         ##############################################################################
                         # perform rendering
                         bpy.ops.render.render(write_still=False)
+
+                        ##############################################################################
+                        # If pos3d ground truth was rendered, some offset was applied for rendering.
+                        # Transform the rendered image back to absolute 3d world coordinates.
+                        # Furthermore, if the scene was transformed to the camera frame, then
+                        # transform the data back.
+                        self._PostProcLabelRender(
+                            _sFpRender=lOutNewFilenames[0],
+                            _bTransformSceneToCameraFrame=bTransformSceneToCameraFrame,
+                        )
 
                         ##############################################################################
                         if bTransformSceneToCameraFrame is True:
@@ -353,7 +385,6 @@ class CRenderRollingShutter(CRender):
                     ##############################################################################
                     # Save log data at each nth read out step
                     if iRoLoopIdx % iRoLoopLogStep == 0:
-
                         sTimeRenderDelta = anytime.SecondsToHmsStr(dTimeRenderDelta / iRoLoopLogStep)
 
                         if iRoLoopIdx > 0:
@@ -419,7 +450,6 @@ class CRenderRollingShutter(CRender):
 
     ################################################################################
     def CreateLogHead(self, _bRunning, _dTimeStart, _iRoLoopIdx, _iRoLoopCnt):
-
         sT = ""
         sT += "\n"
         sT += "=================================================\n"
