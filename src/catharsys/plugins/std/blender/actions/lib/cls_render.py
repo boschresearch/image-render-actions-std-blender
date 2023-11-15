@@ -751,7 +751,14 @@ class CRender:
 
     ##############################################################
     # Apply render output configuration
-    def _ApplyCfgRenderOutputFiles(self, _dicRndOut):
+    def _ApplyCfgRenderOutputFiles(
+        self,
+        _dicRndOut: dict,
+        *,
+        _sPathTrgMain: Optional[str] = None,
+    ):
+        sPathTrgMain: str = _sPathTrgMain if _sPathTrgMain is not None else self.sPathTrgMain
+
         self.xRndOutType = self._GetRenderOutType(_dicRndOut, NsConfigDTI.sDtiRenderOutputAll)
         self._ApplyCommonRenderOutputSettings(_dicRndOut)  # raise exception for unhandled, or bad configured
 
@@ -770,7 +777,7 @@ class CRender:
         if self.xRndOutType.sMainType == NsMainTypesRenderOut.image:
             if self.xRndOutType.sSpecificType is None:
                 # Apply file out config to compositor
-                self.xCompFileOut.SetFileOut(self.sPathTrgMain, self.lFileOut)
+                self.xCompFileOut.SetFileOut(sPathTrgMain, self.lFileOut)
             # endif
         elif self.xRndOutType.sMainType == NsMainTypesRenderOut.anytruth:
             # nothing further to do

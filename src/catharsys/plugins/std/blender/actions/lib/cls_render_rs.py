@@ -206,7 +206,7 @@ class CRenderRollingShutter(CRender):
             # endif
 
             # apply render output settings
-            self._ApplyCfgRenderOutputFiles(dicRndOut)
+            self._ApplyCfgRenderOutputFiles(dicRndOut, _sPathTrgMain=sPathRenderFrame)
             self._ApplyCfgRenderOutputSettings(dicRndOut)
 
             self._ApplyCfgAnnotation(_sPathTrgMain=sPathRenderFrame)
@@ -235,7 +235,6 @@ class CRenderRollingShutter(CRender):
 
             # Set the base render path
             # Apply file out config to compositor
-            # self.xCompFileOut.SetFileOut(sPathRenderFrame, self.lFileOut)
             sLog += "Using render path: {0}\n".format(sPathRenderFrame)
 
             # Loop over all exposures for frame
@@ -334,6 +333,15 @@ class CRenderRollingShutter(CRender):
 
                     # Perform the rendering
                     if self.bDoRender:
+                        ##############################################################################
+                        # Set the frame to render
+                        self.xScn.frame_set(self.iSceneFrame)
+                        self.xCtx.view_layer.update()
+
+                        ##############################################################################
+                        # Apply only those modifiers that support mode 'FRAME_UPDATE'
+                        self._ApplyCfgModifier(sMode="FRAME_UPDATE")
+
                         ######################################################
                         # Export the label data to json
                         if xRndOutType.sMainType != NsMainTypesRenderOut.none:
@@ -345,15 +353,6 @@ class CRenderRollingShutter(CRender):
                             )
                         # endif
                         ######################################################
-
-                        ##############################################################################
-                        # Set the frame to render
-                        self.xScn.frame_set(self.iSceneFrame)
-                        self.xCtx.view_layer.update()
-
-                        ##############################################################################
-                        # Apply only those modifiers that support mode 'FRAME_UPDATE'
-                        self._ApplyCfgModifier(sMode="FRAME_UPDATE")
 
                         ##############################################################################
                         if bTransformSceneToCameraFrame is True:
