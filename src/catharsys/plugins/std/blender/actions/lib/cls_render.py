@@ -1080,6 +1080,10 @@ class CRender:
             # endif
             iSrcRows, iSrcCols, iSrcChnl = tSrcShape = imgSrc.shape
 
+            # pathSrc = Path(_sFpRender)
+            # pathTrg = pathSrc.parent / (pathSrc.name + "_src.exr")
+            # cv2.imwrite(pathTrg.as_posix(), imgSrc.astype(np.float32))
+
             # Transfrom from BGR to XYZ vector in RGB channels
             imgSrcVec = np.flip(imgSrc, axis=2)
 
@@ -1102,14 +1106,11 @@ class CRender:
                 imgSrcVec = np.tensordot(aRot, imgSrcVec, axes=(1, 2))
                 imgSrcVec = np.transpose(imgSrcVec, axes=(1, 2, 0))
                 imgSrcVec = np.add(imgSrcVec, aTrans[np.newaxis, np.newaxis, :], where=imgMask[:, :, np.newaxis])
+                imgSrcVec[~imgMask] = 0.0
             # endif
 
             # Flip back to BGR for OpenCV write function
             imgTrg = np.flip(imgSrcVec, axis=2)
-
-            # pathSrc = Path(_sFpRender)
-            # pathTrg = pathSrc.parent / "proc.exr"
-            # cv2.imwrite(pathTrg.as_posix(), imgTrg.astype(np.float32))
 
             cv2.imwrite(_sFpRender, imgTrg.astype(np.float32))
         # endif
