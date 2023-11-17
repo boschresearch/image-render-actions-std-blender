@@ -346,7 +346,7 @@ class CRenderRollingShutter(CRender):
                         # Export the label data to json
                         if xRndOutType.sMainType != NsMainTypesRenderOut.none:
                             self._ExportLabelData(
-                                os.path.dirname(lOutNewFilenames[0]),
+                                os.path.dirname(lOutputFilenames[0]),
                                 self.iSceneFrame,
                                 _bUpdateLabelData3d=False,
                                 _sFrameNamePattern="Exp_{0:07d}.json",
@@ -369,7 +369,7 @@ class CRenderRollingShutter(CRender):
                         # Furthermore, if the scene was transformed to the camera frame, then
                         # transform the data back.
                         self._PostProcLabelRender(
-                            _sFpRender=lOutNewFilenames[0],
+                            _sFpRender=lOutputFilenames[0],
                             _bTransformSceneToCameraFrame=bTransformSceneToCameraFrame,
                         )
 
