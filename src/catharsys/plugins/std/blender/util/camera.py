@@ -211,10 +211,17 @@ def GetCameraData(_sObjId):
         if sCamPanoType == "FISHEYE_EQUIDISTANT":
             dicCam["blender_pano_equidist_fov"] = sCamPanoFishFov
         elif sCamPanoType == "EQUIRECTANGULAR":
-            dicCam["blender_pano_equirect_fov_range"] = [
-                [camX.cycles.longitude_min, camX.cycles.longitude_max],
-                [camX.cycles.latitude_min, camX.cycles.latitude_max],
-            ]
+            if hasattr(camX, "cycles"):
+                dicCam["blender_pano_equirect_fov_range"] = [
+                    [camX.cycles.longitude_min, camX.cycles.longitude_max],
+                    [camX.cycles.latitude_min, camX.cycles.latitude_max],
+                ]
+            else:
+                dicCam["blender_pano_equirect_fov_range"] = [
+                    [camX.longitude_min, camX.longitude_max],
+                    [camX.latitude_min, camX.latitude_max],
+                ]
+            # endif
         # endif
     # endif
 
