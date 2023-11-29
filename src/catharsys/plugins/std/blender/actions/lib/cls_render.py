@@ -33,7 +33,7 @@ import copy
 import gc
 
 import ison
-
+from typing import Optional
 from dataclasses import dataclass
 
 from anybase.cls_anyexcept import CAnyExcept
@@ -751,7 +751,14 @@ class CRender:
 
     ##############################################################
     # Apply render output configuration
-    def _ApplyCfgRenderOutputFiles(self, _dicRndOut):
+    def _ApplyCfgRenderOutputFiles(
+        self,
+        _dicRndOut: dict,
+        *,
+        _sPathTrgMain: Optional[str] = None,
+    ):
+        sPathTrgMain: str = _sPathTrgMain if _sPathTrgMain is not None else self.sPathTrgMain
+
         self.xRndOutType = self._GetRenderOutType(_dicRndOut, NsConfigDTI.sDtiRenderOutputAll)
         self._ApplyCommonRenderOutputSettings(_dicRndOut)  # raise exception for unhandled, or bad configured
 
@@ -770,7 +777,7 @@ class CRender:
         if self.xRndOutType.sMainType == NsMainTypesRenderOut.image:
             if self.xRndOutType.sSpecificType is None:
                 # Apply file out config to compositor
-                self.xCompFileOut.SetFileOut(self.sPathTrgMain, self.lFileOut)
+                self.xCompFileOut.SetFileOut(sPathTrgMain, self.lFileOut)
             # endif
         elif self.xRndOutType.sMainType == NsMainTypesRenderOut.anytruth:
             # nothing further to do
@@ -964,18 +971,29 @@ class CRender:
     ###########################################################
     # Apply label render settings after modifications, animations
     # and point clouds are loaded and applied
-    def _ApplyCfgAnnotation(self, bApplyFilePathsOnly=False):
+    def _ApplyCfgAnnotation(
+        self,
+        *,
+        _sPathTrgMain: Optional[str] = None,
+        _bApplyFilePathsOnly=False,
+    ):
         if self.bApplyAnnotation:
             # Disable auto-update of label data with frame change.
             anytruth.ops_labeldb.EnableAutoUpdateAnnotation(self.xCtx, False)
 
+            if _sPathTrgMain is not None:
+                sPathTrgMain = _sPathTrgMain
+            else:
+                sPathTrgMain = self.sPathTrgMain
+            # endif
+
             anytruth.ops_labeldb.ApplyLabelRenderSettings(
                 self.xCtx,
                 sAnnotationType=self.sAnnotationType,
-                sPathTrgMain=self.sPathTrgMain,
+                sPathTrgMain=sPathTrgMain,
                 xCompFileOut=self.xCompFileOut,
                 sFilename="Exp_#######",
-                bApplyFilePathsOnly=bApplyFilePathsOnly,
+                bApplyFilePathsOnly=_bApplyFilePathsOnly,
                 bEvalBoxes2d=self.bLabelEvalBoxes2d,
             )
         # endif
@@ -1001,12 +1019,26 @@ class CRender:
     # enddef
 
     ##############################################################
-    def _ExportLabelData(self, _sPath, _iTrgFrame, _bUpdateLabelData3d: bool = True, _bEvalBoxes2d: bool = False):
+    def _ExportLabelData(
+        self,
+        _sPath,
+        _iTrgFrame,
+        *,
+        _sFrameNamePattern: Optional[str] = None,
+        _bUpdateLabelData3d: bool = True,
+        _bEvalBoxes2d: bool = False,
+    ):
+        if _sFrameNamePattern is not None:
+            sFrameNamePattern = _sFrameNamePattern
+        else:
+            sFrameNamePattern = "Frame_{0:04d}.json"
+        # endif
+
         if self.sRenderOutType == "anytruth/label":
             pathExData: Path = self.xPrjCfg.pathProduction / "AT_CommonData"
             pathExData.mkdir(parents=True, exist_ok=True)
 
-            sFpLabel = os.path.join(_sPath, "Frame_{0:04d}.json".format(_iTrgFrame))
+            sFpLabel = os.path.join(_sPath, sFrameNamePattern.format(_iTrgFrame))
             self.Print("Exporting label types to: {0}".format(sFpLabel))
             anytruth.ops_labeldb.ExportAppliedLabelTypes(
                 bpy.context,
@@ -1018,7 +1050,7 @@ class CRender:
             )
 
         elif self.sRenderOutType == "anytruth/pos3d":
-            sFpLabel = os.path.join(_sPath, "Frame_{0:04d}.json".format(_iTrgFrame))
+            sFpLabel = os.path.join(_sPath, sFrameNamePattern.format(_iTrgFrame))
             self.Print("Exporting pos3d info to: {0}".format(sFpLabel))
             anytruth.ops_labeldb.ExportPos3dInfo(bpy.context, sFpLabel)
         # endif
@@ -1048,6 +1080,10 @@ class CRender:
             # endif
             iSrcRows, iSrcCols, iSrcChnl = tSrcShape = imgSrc.shape
 
+            # pathSrc = Path(_sFpRender)
+            # pathTrg = pathSrc.parent / (pathSrc.name + "_src.exr")
+            # cv2.imwrite(pathTrg.as_posix(), imgSrc.astype(np.float32))
+
             # Transfrom from BGR to XYZ vector in RGB channels
             imgSrcVec = np.flip(imgSrc, axis=2)
 
@@ -1070,14 +1106,11 @@ class CRender:
                 imgSrcVec = np.tensordot(aRot, imgSrcVec, axes=(1, 2))
                 imgSrcVec = np.transpose(imgSrcVec, axes=(1, 2, 0))
                 imgSrcVec = np.add(imgSrcVec, aTrans[np.newaxis, np.newaxis, :], where=imgMask[:, :, np.newaxis])
+                imgSrcVec[~imgMask] = 0.0
             # endif
 
             # Flip back to BGR for OpenCV write function
             imgTrg = np.flip(imgSrcVec, axis=2)
-
-            # pathSrc = Path(_sFpRender)
-            # pathTrg = pathSrc.parent / "proc.exr"
-            # cv2.imwrite(pathTrg.as_posix(), imgTrg.astype(np.float32))
 
             cv2.imwrite(_sFpRender, imgTrg.astype(np.float32))
         # endif
