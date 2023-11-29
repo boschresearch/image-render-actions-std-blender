@@ -158,13 +158,20 @@ def ForEachObject(_clnX, _dicMod, **kwargs):
 
         dicIter = {"for-each-object": {"idx": iIdx, "name": objX.name}}
 
-        xParser = CAnyCML(dicConstVars=dicIter)
-        ldicActMod = xParser.Process(_dicMod, lProcessPaths=["lModifiers"])
-        lActMod = ldicActMod[0]["lModifiers"]
-        dicIter.update(dicVars)
+        try:
+            xParser = CAnyCML(dicConstVars=dicIter)
+            ldicActMod = xParser.Process(_dicMod, lProcessPaths=["lModifiers"])
+            lActMod = ldicActMod[0]["lModifiers"]
+            dicIter.update(dicVars)
 
-        logFunctionCall.PrintLog(f"try to apply modifier to {objX.name} mode:'{sMode}'")
-        objects.ModifyObject(objX, lActMod, sMode=sMode, dicVars=dicIter)
+            logFunctionCall.PrintLog(f"try to apply modifier to {objX.name} mode:'{sMode}'")
+            objects.ModifyObject(objX, lActMod, sMode=sMode, dicVars=dicIter)
+        except Exception as xEx:
+            raise CAnyError_Message(
+                sMsg=f"Error processing object '{objX.name}' with index {iIdx} of collection '{_clnX.name}'",
+                xChildEx=xEx,
+            )
+        # endtry
 
         iIdx += 1
     # endfor
@@ -382,7 +389,9 @@ def RndPlaceObjOnSurf(_clnX, _dicMod, **kwargs):
         bUseBoundBox = convert.DictElementToBool(_dicMod, "bUseBoundBox", bDefault=False)
         xInstanceOrigin = _dicMod.get("xInstanceOrigin")
         if not isinstance(xInstanceOrigin, str):
-            xInstanceOrigin = convert.DictElementToFloatList(_dicMod, "xInstanceOrigin", iLen=3, lDefault=[0.0, 0.0, -0.5])
+            xInstanceOrigin = convert.DictElementToFloatList(
+                _dicMod, "xInstanceOrigin", iLen=3, lDefault=[0.0, 0.0, -0.5]
+            )
         # endif
 
         random.seed(iSeed)
@@ -477,9 +486,13 @@ def RndPlaceObjOnSurf(_clnX, _dicMod, **kwargs):
         if sInstanceType == "OBJECT":
             xInstances.AddCollection(_clnX=_clnX, _lObjectTypes=lObjectTypes)
         elif sInstanceType == "CHILD_OBJ":
-            xInstances.AddCollectionElements(_clnX=_clnX, _bChildCollectionsAsInstances=False, _lObjectTypes=lObjectTypes)
+            xInstances.AddCollectionElements(
+                _clnX=_clnX, _bChildCollectionsAsInstances=False, _lObjectTypes=lObjectTypes
+            )
         elif sInstanceType == "CHILD_CLN":
-            xInstances.AddCollectionElements(_clnX=_clnX, _bChildCollectionsAsInstances=True, _lObjectTypes=lObjectTypes)
+            xInstances.AddCollectionElements(
+                _clnX=_clnX, _bChildCollectionsAsInstances=True, _lObjectTypes=lObjectTypes
+            )
         else:
             raise RuntimeError(f"Element 'sInstanceType' has to be one of: {lValidInstTypes}")
         # endif
@@ -493,7 +506,9 @@ def RndPlaceObjOnSurf(_clnX, _dicMod, **kwargs):
         # ######################################################################################
         # Create random instances
 
-        def SetInstanceParentCollection(_xInst: _CInstance, _clnParentInst: bpy.types.Collection) -> bpy.types.Collection:
+        def SetInstanceParentCollection(
+            _xInst: _CInstance, _clnParentInst: bpy.types.Collection
+        ) -> bpy.types.Collection:
             global g_bHasAnyTruth
 
             clnParent = _xInst.GetParentCollection()
@@ -563,7 +578,9 @@ def RndPlaceObjOnSurf(_clnX, _dicMod, **kwargs):
                 lAngles_rad = [
                     random.uniform(lInstRndRotEulerRange_rad[i][0], lInstRndRotEulerRange_rad[i][1]) for i in range(3)
                 ]
-                xInst.RotateEuler(_lEulerAngles=lAngles_rad, _bAnglesInDeg=False, _lOriginOffset=lInstRndRotOriginOffset)
+                xInst.RotateEuler(
+                    _lEulerAngles=lAngles_rad, _bAnglesInDeg=False, _lOriginOffset=lInstRndRotOriginOffset
+                )
             # endfor
             viewlayer.Update()
         # endif
@@ -663,10 +680,12 @@ def RndPlaceObjOnSurf(_clnX, _dicMod, **kwargs):
         viewlayer.Update()
     except Exception as xEx:
         import traceback
+
         print(traceback.format_exc(), flush=True)
 
         raise CAnyError_Message(sMsg="Error running random placement modifier", xChildEx=xEx)
     # endtry
+
 
 # enddef
 

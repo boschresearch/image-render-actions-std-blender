@@ -36,6 +36,7 @@ from . import util
 
 from catharsys.decs.decorator_log import logFunctionCall
 
+
 # concentrate print functionality for further generic logging concept
 def _Print(_sMsg: str):
     print(_sMsg)
@@ -46,7 +47,6 @@ def _Print(_sMsg: str):
 ############################################################################################
 @logFunctionCall
 def ModifyObject(_objX, _lMods, sMode="INIT", dicVars=None):
-
     if _lMods is None:
         return
     # endif
@@ -55,7 +55,16 @@ def ModifyObject(_objX, _lMods, sMode="INIT", dicVars=None):
         _Print(f"\nApplying modifiers to object: {_objX.name}")
     # endif
 
-    for dicMod in _lMods:
+    for iModIdx, dicMod in enumerate(_lMods):
+        if not isinstance(dicMod, dict):
+            raise CAnyError_Message(
+                sMsg=(
+                    f"The configuration of object modifier {(iModIdx+1)} for "
+                    f"object '{_objX.name}' is not a dictionary:\n{dicMod}\n"
+                )
+            )
+        # endif
+
         sModType = dicMod.get("sDTI")
         if sModType is None:
             raise CAnyError_Message(sMsg=f"Modifier for object '{_objX.name}' is missing 'sDTI' element")
@@ -94,7 +103,6 @@ def ModifyObject(_objX, _lMods, sMode="INIT", dicVars=None):
 ############################################################################################
 @logFunctionCall
 def ModifyObjects(_dicModifyObjects, sMode="INIT", dicVars=None):
-
     if _dicModifyObjects is None:
         return
     # endif
