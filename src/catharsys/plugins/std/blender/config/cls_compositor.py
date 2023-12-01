@@ -34,7 +34,6 @@ from catharsys.util.cls_configcml import CConfigCML
 
 class CConfigCompositor:
     def __init__(self, *, xPrjCfg, dicData={}):
-
         self.xPrjCfg = xPrjCfg
         self.dicData = copy.deepcopy(dicData)
         if self.dicData is not None:
@@ -46,9 +45,7 @@ class CConfigCompositor:
     ######################################################################################
     # Add the file extensions for the given file formats
     def AddFileExtToFileOutList(self, _dicData):
-
         for dicFo in _dicData.get("lFileOut"):
-
             sFileFormat = dicFo.get("mFormat").get("sFileFormat")
             if sFileFormat == "OPEN_EXR":
                 dicFo["sFileExt"] = ".exr"
@@ -57,11 +54,7 @@ class CConfigCompositor:
             elif sFileFormat == "PNG":
                 dicFo["sFileExt"] = ".png"
             else:
-                raise Exception(
-                    "Unknown compositor file output format type '{0}'.".format(
-                        sFileFormat
-                    )
-                )
+                raise Exception("Unknown compositor file output format type '{0}'.".format(sFileFormat))
             # endif
         # endfor
 
@@ -70,11 +63,10 @@ class CConfigCompositor:
     ######################################################################################
     # Load Compositor from file
     def LoadFile(self, _xPath):
-
         pathFile = path.MakeNormPath(_xPath)
 
         self.dicData = config.Load(_xPath, sDTI="compositor:1.0", bAddPathVars=True)
-        xCML = CConfigCML(xPrjCfg=self.xPrjCfg, sImportPath=pathFile.as_posix())
+        xCML = CConfigCML(xPrjCfg=self.xPrjCfg, sImportPath=pathFile.parent.as_posix())
         self.dicData = xCML.Process(self.dicData)
 
         self.AddFileExtToFileOutList(self.dicData)
@@ -87,7 +79,6 @@ class CConfigCompositor:
     # to different folders.
     # This function also adds the file extension used.
     def GetOutputsByType(self):
-
         dicOut = {}
         lFileOut = self.dicData.get("lFileOut")
         if lFileOut is None:
@@ -95,7 +86,6 @@ class CConfigCompositor:
         # endif
 
         for dicFo in lFileOut:
-
             sOutType = dicFo.get("sOutput")
             if sOutType is None:
                 raise Exception("Missing 'sOutput' field in compositor data block.")
@@ -120,7 +110,6 @@ class CConfigCompositor:
     # to different folders.
     # This function also adds the file extension used.
     def GetOutputsByFolderName(self) -> dict:
-
         dicOut = {}
         lFileOut = self.dicData.get("lFileOut")
         if lFileOut is None:
@@ -128,7 +117,6 @@ class CConfigCompositor:
         # endif
 
         for dicFo in lFileOut:
-
             sOutType = dicFo.get("sFolder")
             if sOutType is None:
                 raise Exception("Missing 'sFolder' field in compositor data block.")
