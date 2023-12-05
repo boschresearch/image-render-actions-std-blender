@@ -34,6 +34,7 @@ from anybase.util import DictRecursiveUpdate
 from anybase import convert
 from catharsys.decs.decorator_log import logFunctionCall
 from collections import defaultdict
+from typing import Union
 from . import util
 
 from ..modify import objects as modobj
@@ -131,7 +132,7 @@ def GenerateObject(_dicObj, dicVars=None) -> dict[str, str]:
                 raise Exception("No generator function available for type '{0}'".format(sDti))
             # endif funcGenerate
 
-            objX = funcGenerate(_dicObj, dicVars=dicVars)
+            xObjects: Union[bpy.types.Object, list[str]] = funcGenerate(_dicObj, dicVars=dicVars)
 
             # General parameter that all generate object configs share
             lCollectionHierarchy = _dicObj.get("lCollectionHierarchy", ["GeneratedObjects"])
@@ -140,7 +141,21 @@ def GenerateObject(_dicObj, dicVars=None) -> dict[str, str]:
             xCtx = bpy.context
             anyblend.collection.MakeRootLayerCollectionActive(xCtx)
 
-            anyblend.collection.AddObjectToCollectionHierarchy(xCtx, objX, lCollectionHierarchy)
+            if isinstance(xObjects, bpy.types.Object):
+                anyblend.collection.AddObjectToCollectionHierarchy(xCtx, xObjects, lCollectionHierarchy)
+            elif isinstance(xObjects, list):
+                for sObjName in xObjects:
+                    if not isinstance(sObjName, str):
+                        raise RuntimeError(
+                            f"Generator function for DTI '{sDti}' returned unsupported data type: {xObjects}"
+                        )
+                    # endif
+                    objX = bpy.data.objects[sObjName]
+                    anyblend.collection.MoveObjectToActiveCollection(bpy.context, objX, lCollectionHierarchy)
+                # endfor
+            else:
+                raise RuntimeError(f"Generator function for DTI '{sDti}' returned unsupported data type: {xObjects}")
+            # endif
 
             # General parameter that all generate object configs share
             lMods = _dicObj.get("lModifiers")
