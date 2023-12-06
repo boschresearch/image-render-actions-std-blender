@@ -614,6 +614,8 @@ class CRender:
     ##############################################################
     def _ApplyCfgRenderSettings(self, _xRenderSettings: CRenderSettings):
         if len(_xRenderSettings.mCycles.keys()) > 0:
+            # print(f">>> RENDER SETTINGS CYCLES: {_xRenderSettings.mCycles}")
+
             self.xCfgCycles = CConfigSettingsCycles(_xRenderSettings.mCycles)
             self.xCfgCycles.Apply(self.xCtx)
         # endif
@@ -813,7 +815,9 @@ class CRender:
                 raise Exception("AnyTruth does currently not support LFT cameras")
             # endif
 
-            self._ApplyCombinedCfgRenderSettings(_dicRndOut, dicCycles={"use_denoising": False})
+            self._ApplyCombinedCfgRenderSettings(
+                _dicRndOut, dicCycles={"sDTI": "/catharsys/blender/render/settings/cycles:1.0", "use_denoising": False}
+            )
 
             # Override render quality as we only need single ray for all cameras
             # apart from LFT cameras.
