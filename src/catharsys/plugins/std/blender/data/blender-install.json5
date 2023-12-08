@@ -1,0 +1,16 @@
+{
+    sDTI: "/catharsys/blender/install:1.0",
+
+    lCatharsysModules: [
+        "functional-json",
+        "image-render-automation",
+        "image-render-actions-std-blender",
+        "image-render-base",
+        "image-render-blender-base",
+        "image-render-blender-camera",
+        "image-render-blender-human",
+        "image-render-blender-label",
+        "image-render-blender-points",
+        "image-render-blender-vehicle",
+    ]
+}

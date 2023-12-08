@@ -61,7 +61,7 @@ g_rePyVer = re.compile(r"(\d+\.\d+\.\d+)")
 
 ############################################################################
 def LoadDefaultBlenderSettings(*, xBlenderCfg, sPrintPrefix=""):
-    reSetVer = re.compile(r"(\d+)-(\d+)\.json5")
+    reSetVer = re.compile(r"blender-settings-(\d+)-(\d+)\.json5")
 
     dicSet = None
     xMatch = re.match(r"(\d+).(\d+)", xBlenderCfg.sVersion)
@@ -529,11 +529,28 @@ def InitBlender(
         # endif
     else:
         if bAddOnsOnly is False:
+            lIncludeModules: list[str] = []
+            xData = res.files(catharsys.plugins.std.blender).joinpath("data").joinpath("blender-install.json5")
+            with xData as pathData:
+                if pathData.exists():
+                    dicData = config.Load(pathData, sDTI="/catharsys/blender/install:1")
+                    lIncMod = dicData.get("lCatharsysModules")
+                    if not isinstance(lIncMod, list):
+                        raise RuntimeError(
+                            f"Element 'lCatharsysModules' in blender installation configuration is not a list: {lIncMod}"
+                        )
+                    # endif
+                    lIncludeModules = lIncMod
+                # endif
+            # endwith
+            # print(f"lIncludeModules: {lIncludeModules}")
+
             module.InstallModules(
                 sPathPythonProg=xBlenderCfg.sPathPythonProg,
                 bForceDist=bForceDist,
                 bForceInstall=bForceInstall,
                 bSourceDist=bCathSourceDist,
+                lIncludeRegEx=lIncludeModules,
             )
         # endif
         if bModulesOnly is False:
