@@ -45,7 +45,6 @@ from catharsys.util import file as cathfile
 
 
 class CLogObj(CRender):
-
     dicLogObj: dict = None
     xCameraSet: CConfigCameraSet = None
 
@@ -53,7 +52,7 @@ class CLogObj(CRender):
 
     ##############################################################
     def __init__(self, *, xPrjCfg, dicCfg):
-        super().__init__(xPrjCfg=xPrjCfg, dicCfg=dicCfg, sDtiCapCfg="capture/std:1")
+        super().__init__(xPrjCfg=xPrjCfg, dicCfg=dicCfg, sDtiCapCfg="capture/*:*")
 
         dicData = self.dicCfg["mConfig"]["mData"]
         if dicData is None:
@@ -74,7 +73,6 @@ class CLogObj(CRender):
 
     ##############################################################
     def Process(self):
-
         if self.bIsInitialized is False:
             raise CAnyExcept("Rendering is not initialized")
         # endif
@@ -172,7 +170,6 @@ class CLogObj(CRender):
 
     ############################################################################################
     def LogObjectsInit(self, _dicData):
-
         self.dicLog = copy.deepcopy(_dicData)
         self.dicLog["lLog"] = []
 
@@ -180,7 +177,6 @@ class CLogObj(CRender):
 
     ############################################################################################
     def LogObjects(self, _dicLogObjects, _iLogIdx, **kwargs):
-
         dicData = kwargs.pop("Data", {})
         # xScene = kwargs.pop("Scene", bpy.context.scene)
 

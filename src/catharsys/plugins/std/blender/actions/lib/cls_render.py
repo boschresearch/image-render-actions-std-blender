@@ -437,6 +437,9 @@ class CRender:
             self.fTargetFps = self.xScn.render.fps
         else:
             self.fTargetFps = self.dicCap.get("dFPS")
+            if self.fTargetFps is None:
+                raise CAnyExcept("No element 'dFPS' given in capture configuration")
+            # endif
         # endif
 
         self.fSceneFps = self.xScn.render.fps / self.xScn.render.fps_base
