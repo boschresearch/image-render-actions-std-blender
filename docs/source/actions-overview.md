@@ -24,7 +24,23 @@ In the following tables the *Action DTI* is the action identifier that has to be
 
 These actions run within a Blender context.
 
-:::{include} actions-list.md
-:::
+### Standard rendering
 
+- DTI: `/catharsys/action/std/blender/render/std:1.0`
+- Summary: Standard rendering as you would do it in Blender
+
+
+
+### Rolling shutter rendering
+
+- DTI: `/catharsys/action/std/blender/render/rs:1.0`
+- Summary: For each final frame renders multiple frames in a time resoltion that matches the rolling shutter exposures
+- Example: {external+image-render-workspace-examples:doc}`Rolling Shutter Configuration Example <usecase/rolling-shutter>`
+
+
+### Log output
+
+- DTI: `/catharsys/action/std/blender/render/log:1.0`
+- Description: Generates a JSON file containing information about the scene for each frame.
+ 
 

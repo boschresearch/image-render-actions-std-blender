@@ -31,7 +31,7 @@ caption: Contents
 
 During rendering the modifier and generator configuration files are processed again for each new frame. 
 The following variables are available. All variables have to be accessed as elements of the dictionary `render`, i.e.
-to obtain the active camera name you need to write `${render:avtive-camera}`.
+to obtain the active camera name you need to write `${render:active-camera}`.
 
 | Variable               | Description                                   | Type       |
 | ---------------------- | --------------------------------------------- | ---------- |
