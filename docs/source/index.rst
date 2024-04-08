@@ -31,6 +31,7 @@ Blender Actions
    actions-overview
    config-proc-render-vars
    license
+   back-to-main
 
 .. Indices and tables
 .. ==================
