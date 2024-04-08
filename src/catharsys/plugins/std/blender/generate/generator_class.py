@@ -141,9 +141,13 @@ def GenerateObject(_dicObj, dicVars=None) -> dict[str, str]:
             xCtx = bpy.context
             anyblend.collection.MakeRootLayerCollectionActive(xCtx)
 
+            lObjects: list[bpy.types.Object] = None
+
             if isinstance(xObjects, bpy.types.Object):
                 anyblend.collection.AddObjectToCollectionHierarchy(xCtx, xObjects, lCollectionHierarchy)
+                lObjects = [xObjects]
             elif isinstance(xObjects, list):
+                lObjects = []
                 for sObjName in xObjects:
                     if not isinstance(sObjName, str):
                         raise RuntimeError(
@@ -152,6 +156,7 @@ def GenerateObject(_dicObj, dicVars=None) -> dict[str, str]:
                     # endif
                     objX = bpy.data.objects[sObjName]
                     anyblend.collection.MoveObjectToActiveCollection(bpy.context, objX, lCollectionHierarchy)
+                    lObjects.append(objX)
                 # endfor
             else:
                 raise RuntimeError(f"Generator function for DTI '{sDti}' returned unsupported data type: {xObjects}")
@@ -164,11 +169,16 @@ def GenerateObject(_dicObj, dicVars=None) -> dict[str, str]:
                 for dicMod in lMods:
                     ison.util.data.AddLocalGlobalVars(dicMod, _dicObj, bThrowOnDisallow=False)
                 # endfor
-                modobj.ModifyObject(objX, lMods, dicVars=dicVars)
+                for objX in lObjects:
+                    modobj.ModifyObject(objX, lMods, dicVars=dicVars)
+                # endfor
             # endif
 
             # Store the names of the objects that are generated w.r.t. their collection name
-            dicGenObj[lCollectionHierarchy[-1]].append(objX.name)
+            sClnName: str = lCollectionHierarchy[-1]
+            for objX in lObjects:
+                dicGenObj[sClnName].append(objX.name)
+            # endfor
 
         except Exception as xEx:
             sMsg = f"Error executing object generator '{sDti}'"
