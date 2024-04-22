@@ -247,6 +247,12 @@ def InstallAddOns(*, xBlenderCfg, bForceDist, dicBlenderSettings):
             if pathRepos is not None:
                 # link add-on from current repo folder
                 modAddOn = importlib.import_module(sName)
+                if modAddOn.__file__ is None:
+                    raise RuntimeError(f"Module '{sName}' has no __file__ attribute.\n"
+                                       "This is typically the case, if the '__init__.py' is missing or\n"
+                                       "if the module explicitly sets the file attribute to 'None'.\n"
+                                        "Neither should be the case for a Blender AddOn module.")
+                # endif
                 pathAddOnSrc = Path(modAddOn.__file__).parent
                 print(">> Linking module '{}' from repository at path: {}".format(sName, pathAddOnSrc.as_posix()))
 
