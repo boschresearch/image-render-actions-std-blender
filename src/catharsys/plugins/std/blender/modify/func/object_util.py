@@ -269,6 +269,20 @@ def ModifyAttributes(_objX, _dicMod, **kwargs):
 
 
 ################################################################################
+def SetFollowPathOffset(_objX, _dicMod, **kwargs):
+    """Set the offset of the Follow Path constraint of the modified object
+
+    Configuration Args:
+        fOffset (float): The offset value to set
+
+    """
+    fOffset = convert.DictElementToFloat(_dicMod, "fOffset")
+    if _objX.constraints.get("Follow Path") is None:
+        raise RuntimeError(f"Object '{_objX.name}' has no Follow Path constraint")
+    _objX.constraints["Follow Path"].offset_factor = fOffset
+
+
+################################################################################
 def ParentToObject(_objX, _dicMod, **kwargs):
     """Parent object to another
 
