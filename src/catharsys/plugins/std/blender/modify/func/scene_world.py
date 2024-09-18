@@ -82,6 +82,8 @@ def SetHdriWorld(_scnX, _dicMod, **kwargs):
 
             try:
                 imgHdr = bpy.data.images.load(filepath=sFpHdr)
+                # pack image to make sure it is stored in the .blend file on saving
+                imgHdr.pack()
             except Exception as xEx:
                 raise Exception(
                     "Error loading environment texture for node '{0}' from path '{1}':\n{2}".format(
