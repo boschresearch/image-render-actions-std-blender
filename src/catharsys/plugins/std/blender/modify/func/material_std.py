@@ -126,8 +126,6 @@ def SetTexturesFromFolder(_matX, _dicMod, **kwargs):
         if imgTex is None:
             try:
                 imgTex = bpy.data.images.load(filepath=sFpTex)
-                # pack image to make sure it is stored in the .blend file on saving
-                imgTex.pack()
             except Exception as xEx:
                 raise Exception(
                     "Error loading texture for node '{0}' from path '{1}':\n{2}".format(sNode, sFpTex, str(xEx))
