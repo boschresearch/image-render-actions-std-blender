@@ -1155,6 +1155,8 @@ class CRender:
         # endif
 
         print("Saving Blender file: {}".format(sFpBlenderFile))
+        # Attempt to pack all images local images into the saved .blend file to make it portable.
+        # If this fails, i.e. due to missing linked images, try to pack the images that are present in the the data blocks individually.
         try:
             anyblend.app.file.PackAllLocal()
         except Exception:
