@@ -1155,7 +1155,6 @@ class CRender:
         # endif
 
         print("Saving Blender file: {}".format(sFpBlenderFile))
-        # anyblend.app.file.PackAllLocal()
         try:
             anyblend.app.file.PackAllLocal()
         except Exception:
