@@ -1155,21 +1155,6 @@ class CRender:
         # endif
 
         print("Saving Blender file: {}".format(sFpBlenderFile))
-        # Attempt to pack all images local images into the saved .blend file to make it portable.
-        # If this fails, i.e. due to missing linked images, try to pack the images that are present in the the data blocks individually.
-        try:
-            anyblend.app.file.PackAllLocal()
-        except Exception:
-            print("PackAllLocal failed, attempting to pack individual images instead")
-            for imgX in bpy.data.images:
-                try:
-                    imgX.pack()
-                except Exception:
-                    print(f"Packing of image {imgX.name} failed, skipping")
-                    pass
-                # endtry
-            # endfor
-        # endtry
         bpy.ops.wm.save_mainfile(filepath=sFpBlenderFile)
 
     # enddef
