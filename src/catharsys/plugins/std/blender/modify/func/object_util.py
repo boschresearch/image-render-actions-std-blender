@@ -292,16 +292,24 @@ def ParentToObject(_objX, _dicMod, **kwargs):
 
     Configuration Args:
         sParentObject (str): The name of the object to parent objX to.
-        bKeepTransform (bool): Whether to keep the current absolute position of an object after parenting, or not.
+        bKeepTransform (bool, optional): Whether to keep the current absolute position of an object after parenting, or not.
+                        Default is false, which means that the object will be moved to the parent's origin. 
         bSkipNonexistingParent (bool, optional) : Control how non existing parent target is handled. If set to true, modifier skips,
                         if set to false an error is thrown. Default behavior is throwing an error.
+        bKeepScale (bool, optional): If bKeepTransform is false, this flag determines whether to keep the current absolute scale 
+                        of an object after parenting, or not. For example, if the parent object is scaled, 
+                        the child object will be scaled as well, if bKeepTransform is false. 
+                        Setting this flag to true will keep the scale of the child object.
+                        Default is false, which means that the object may be scaled with its' direct parent.
     """
 
     # Get required elements
     sParentObject = convert.DictElementToString(_dicMod, "sParentObject")
-    bKeepTransform = convert.DictElementToBool(_dicMod, "bKeepTransform", bDefault=False)
 
     # Get optional elements
+    bKeepTransform = convert.DictElementToBool(_dicMod, "bKeepTransform", bDefault=False)
+    bKeepScale = convert.DictElementToBool(_dicMod, "bKeepScale", bDefault=False)
+
     bSkipNonexistingParent = convert.DictElementToBool(
         _dicMod,
         "bSkipNonexistingParent",
@@ -318,7 +326,7 @@ def ParentToObject(_objX, _dicMod, **kwargs):
                 raise RuntimeError(f"Object '{sParentObject}' not found for parenting")
             # endif
         else:
-            anyobj.ParentObject(objParent, _objX, bKeepTransform=bKeepTransform)
+            anyobj.ParentObject(objParent, _objX, bKeepTransform=bKeepTransform, bKeepScale=bKeepScale)
         # endif
     # endif
 
