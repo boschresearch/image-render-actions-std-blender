@@ -163,6 +163,7 @@ def LoadCollections(_dicCln, **kwargs):
     # endfor
 
     for clnImport, sImportClnName in zip(data_to.collections, lImportClnNames):
+        print(f"Importing collection '{sImportClnName}'")
         dicTrgClnCfg = mCollections[sImportClnName]
         lTrgClnTree = dicTrgClnCfg.get("lCollectionHierarchy")
         if lTrgClnTree is None:
@@ -171,9 +172,22 @@ def LoadCollections(_dicCln, **kwargs):
         sTrgClnName = ".".join(lTrgClnTree)
 
         # Scale object by import scale and apply the scale
-        for objX in clnImport.objects:
-            anyblend.object.ScaleObject(objX, fImportScale, _bApply=True)
-        # endfor
+        if fImportScale != 1.0:
+            lClnObjs: list[str] = anyblend.collection.GetCollectionObjects(clnImport, _bRecursive=True)
+            # print(f"Collection has {len(lClnObjs)} MESH objects")
+            for objNameX in lClnObjs:
+                objX: bpy.types.Object = bpy.data.objects[objNameX]
+                if objX.parent is not None and objX.parent.name in lClnObjs:
+                    # print(f"Not scaling {objNameX} as it has a parent in the same collection hierarchy")
+                    continue
+
+                print(f"Scaling imported object {objNameX} with scale {fImportScale}")
+                anyblend.object.ScaleObject(objX, fImportScale, _bApply=True)
+                objX.location.x = objX.location.x * fImportScale
+                objX.location.y = objX.location.y * fImportScale
+                objX.location.z = objX.location.z * fImportScale
+            # endfor
+
 
         # print(f"Children of {clnImport.name}")
         # for clnX in clnImport.children:

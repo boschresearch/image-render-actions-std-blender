@@ -280,6 +280,8 @@ class CRender:
         self.sWorldOrigId: str = None
         self.dicGeneratedObjects: dict = None
 
+        self.dicData: dict = None
+
     # enddef
 
     ################################################################################
@@ -330,20 +332,20 @@ class CRender:
 
         self.sJobGroupId = self.dicCfg["sJobGroupId"]
 
-        dicData = self.dicCfg["mConfig"]["mData"]
-        if dicData is None:
+        self.dicData = self.dicCfg["mConfig"]["mData"]
+        if self.dicData is None:
             raise CAnyExcept("No configuration data given")
         # endif
 
         # Make global variables available in separate configs
-        ison.util.data.AddLocalGlobalVars(dicData, self.dicCfg, bThrowOnDisallow=False)
+        ison.util.data.AddLocalGlobalVars(self.dicData, self.dicCfg, bThrowOnDisallow=False)
 
         # sys.stderr.write("\nself.dicCfg['__globals__']: {}\n".format(self.dicCfg.get("__globals__")))
         # sys.stderr.flush()
 
         # ########################################################
         # Load capture config
-        lCap = cathcfg.GetDataBlocksOfType(dicData, self.sDtiCapCfg)
+        lCap = cathcfg.GetDataBlocksOfType(self.dicData, self.sDtiCapCfg)
         if len(lCap) == 0:
             print(f"WARNING: No capture configuration of type compatible to '{self.sDtiCapCfg}' given.")
             self.dicCap = None
@@ -353,7 +355,7 @@ class CRender:
 
         # ########################################################
         # Load render output config
-        lRndTypeList = cathcfg.GetDataBlocksOfType(dicData, NsConfigDTI.sDtiRenderOutputList)
+        lRndTypeList = cathcfg.GetDataBlocksOfType(self.dicData, NsConfigDTI.sDtiRenderOutputList)
         if len(lRndTypeList) == 0:
             raise CAnyExcept(
                 "No render output configuration of type compatible to '{0}' given".format(
@@ -385,22 +387,15 @@ class CRender:
         xRenderSettings: CRenderSettings = self._GetCfgRenderSettings(self.lRndSettings)
         self._ApplyCfgRenderSettings(xRenderSettings)
 
-        # Get camera name and camera parent object if defined
-        dicCameraName = cbu_cam.GetSelectedCameraName(dicData, bDoRaise=False)
-        if dicCameraName is not None:
-            self.sCameraName = dicCameraName.get("sCameraName")
-            self.sCameraParentName = dicCameraName.get("sCameraParentName")
-        else:
-            self.sCameraName = None
-            self.sCameraParentName = None
-        # endif
-
+        self.sCameraName = None
+        self.sCameraParentName = None
+        
         # Scene Configurations
-        self.lAnim = cathcfg.GetDataBlocksOfType(dicData, NsConfigDTI.sDtiAnim)
-        self.lMod = cathcfg.GetDataBlocksOfType(dicData, NsConfigDTI.sDtiModify)
-        self.lGen = cathcfg.GetDataBlocksOfType(dicData, NsConfigDTI.sDtiGenerate)
-        self.lPclRefSet = cathcfg.GetDataBlocksOfType(dicData, NsConfigDTI.sDtiPclRefSet)
-        self.lPclSelection = cathcfg.GetDataBlocksOfType(dicData, NsConfigDTI.sDtiPclSelection)
+        self.lAnim = cathcfg.GetDataBlocksOfType(self.dicData, NsConfigDTI.sDtiAnim)
+        self.lMod = cathcfg.GetDataBlocksOfType(self.dicData, NsConfigDTI.sDtiModify)
+        self.lGen = cathcfg.GetDataBlocksOfType(self.dicData, NsConfigDTI.sDtiGenerate)
+        self.lPclRefSet = cathcfg.GetDataBlocksOfType(self.dicData, NsConfigDTI.sDtiPclRefSet)
+        self.lPclSelection = cathcfg.GetDataBlocksOfType(self.dicData, NsConfigDTI.sDtiPclSelection)
 
         self.xCfgModifier = CConfigModifyList(self.lMod)
         self.xCfgGenerator = CConfigGenerateList(self.lGen)
@@ -520,6 +515,17 @@ class CRender:
     # Activate selected anycam camera
     @logFunctionCall
     def _ApplyCfgCamera(self):
+        # Get camera name and camera parent object if defined
+        dicCameraName = cbu_cam.GetSelectedCameraName(self.dicData, bDoRaise=False)
+        if dicCameraName is not None:
+            self.sCameraName = dicCameraName.get("sCameraName")
+            self.sCameraParentName = dicCameraName.get("sCameraParentName")
+        else:
+            self.sCameraName = None
+            self.sCameraParentName = None
+        # endif
+
+
         if self.sCameraName is None:
             return
         # endif

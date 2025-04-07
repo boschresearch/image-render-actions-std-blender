@@ -57,12 +57,13 @@ def ModifyObject(_objX, _lMods, sMode="INIT", dicVars=None):
 
     for iModIdx, dicMod in enumerate(_lMods):
         if not isinstance(dicMod, dict):
-            raise CAnyError_Message(
-                sMsg=(
-                    f"The configuration of object modifier {(iModIdx+1)} for "
-                    f"object '{_objX.name}' is not a dictionary:\n{dicMod}\n"
-                )
-            )
+            continue
+            # raise CAnyError_Message(
+            #     sMsg=(
+            #         f"The configuration of object modifier {(iModIdx+1)} for "
+            #         f"object '{_objX.name}' is not a dictionary:\n{dicMod}\n"
+            #     )
+            # )
         # endif
 
         sModType = dicMod.get("sDTI")
@@ -132,10 +133,11 @@ def ModifyObjects(_dicModifyObjects, sMode="INIT", dicVars=None):
             # endif
 
             for dicMod in lMods:
-                if not isinstance(dicMod, dict):
-                    raise CAnyError_Message(sMsg=f"Expect modifier list for obejct '{sObjId}' to contain dictionaries")
+                if isinstance(dicMod, dict):
+                    ison.util.data.AddLocalGlobalVars(dicMod, _dicModifyObjects, bThrowOnDisallow=False)
+                # else:
+                    # raise CAnyError_Message(sMsg=f"Expect modifier list for object '{sObjId}' to contain dictionaries")
                 # endif
-                ison.util.data.AddLocalGlobalVars(dicMod, _dicModifyObjects, bThrowOnDisallow=False)
             # endfor
 
             ModifyObject(objX, lMods, sMode=sMode, dicVars=dicVars)
