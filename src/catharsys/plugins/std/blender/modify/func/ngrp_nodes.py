@@ -123,6 +123,7 @@ def SetNodeValues(_ngX, _dicMod, **kwargs):
         lInputs (list): List of dictionaries that define input values.
         lOutputs (list): List of dictionaries that define output values.
         lProperties (list): List of dictionaries that define property values.
+        bSkipIfNodeMissing (bool): If True, skip setting values if node is missing.
 
     "lInputs", "lOutputs" element args:
         "sName" (string): Name of the input/output.
@@ -159,8 +160,13 @@ def SetNodeValues(_ngX, _dicMod, **kwargs):
         )
     # endtry
 
+    bSkipIfNodeMissing = convert.DictElementToBool(_dicMod, "bSkipIfNodeMissing", bDefault=False, bDoRaise=False)
+
     ndX = node.GetByLabelOrId(_ngX, sNodeId)
     if ndX is None:
+        if bSkipIfNodeMissing:
+            return
+        # endif
         raise RuntimeError(
             "Node {} not found in node group {}".format(sNodeId, _ngX.name)
         )

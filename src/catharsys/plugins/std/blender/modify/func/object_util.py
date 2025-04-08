@@ -47,7 +47,11 @@ except Exception:
     g_bInBlenderContext = False  # don't worry, but don't call anything from here
 
 from anybase import assertion
+from anybase.cls_any_error import CAnyError, CAnyError_Message
 
+import ison
+from anybase.cls_anycml import CAnyCML
+from .. import materials
 
 ############################################################################################
 def _EnableRender(_objX, _bEnable, bRecursive=True):
@@ -264,6 +268,84 @@ def ModifyAttributes(_objX, _dicMod, **kwargs):
         # endtry
     # endfor
 
+
+# enddef
+
+############################################################################################
+def ForEachMaterial(_objX: bpy.types.Object, _dicMod, **kwargs):
+    """Apply a list of modifiers to each material of the object.
+
+    Parameters
+    ----------
+    _objX : blender object
+        Object to be modified
+    _dicMod : dict
+        Attributes to be modified
+        
+    Raises
+    ------
+    Exception
+        Raise an exception if anything fails during modification of the object
+
+    """
+    assertion.IsTrue(g_bInBlenderContext)
+
+    sMode = kwargs.get("sMode", "INIT")
+    dicVars = kwargs.get("dicVars", {})
+    sMatNamePattern = _dicMod.get("sMaterialNamePattern")
+
+    lModifiers = _dicMod.get("lModifiers")
+    if not isinstance(lModifiers, list):
+        raise RuntimeError(f"Element 'lModifiers' of type 'list' missing for collection modifier '{_dicMod.get('sType')}'")
+    # endif
+
+    for dicModFunc in lModifiers:
+        if isinstance(dicModFunc, str):
+            continue
+        elif isinstance(dicModFunc, dict):
+            ison.util.data.AddLocalGlobalVars(dicModFunc, _dicMod, bThrowOnDisallow=False)
+        else:
+            raise RuntimeError("Invalid object type in 'lModifiers' list")
+        # endif
+    # endfor
+
+    reMat = None
+    if sMatNamePattern is not None:
+        reMat = re.compile(sMatNamePattern)
+    # endif
+
+    iIdx = 0
+
+    matX: bpy.types.Material
+
+    lMaterialsToProcess: list[bpy.types.Material] = [x.material for x in _objX.material_slots]
+    for matX in lMaterialsToProcess:
+        if reMat is not None:
+            sName = matX.name
+            if not reMat.match(sName):
+                continue
+            # endif
+        # endif
+
+        dicIter = {"for-each-material": {"idx": iIdx, "name": matX.name}}
+
+        # apply modifiers to material
+        try:
+            xParser = CAnyCML(dicConstVars=dicIter)
+            ldicActMod = xParser.Process(_dicMod, lProcessPaths=["lModifiers"])
+            lActMod = ldicActMod[0]["lModifiers"]
+            dicIter.update(dicVars)
+
+            materials.ModifyMaterial(matX, lActMod, sMode=sMode, dicVars=dicIter)
+
+        except Exception as xEx:
+            raise CAnyError_Message(
+                sMsg=f"Error processing object '{matX.name}' with index {iIdx} of collection '{_objX.name}'",
+                xChildEx=xEx,
+            )
+        # endtry
+
+        iIdx += 1
 
 # enddef
 

@@ -44,6 +44,53 @@ def _Print(_sMsg: str):
 
 
 ############################################################################################
+@logFunctionCall
+def ModifyMaterial(_matX, _lMods, sMode="INIT", dicVars=None):
+    if _lMods is None:
+        return
+    # endif
+
+    if len(_lMods) > 0:
+        _Print(f"\nApplying modifiers to material: {_matX.name}")
+    # endif
+
+    for iModIdx, dicMod in enumerate(_lMods):
+        if not isinstance(dicMod, dict):
+            continue
+        # endif
+
+        sModType = dicMod.get("sDTI")
+        if sModType is None:
+            raise CAnyError_Message(sMsg=f"Modifier for material '{_matX.name}' is missing 'sDTI' element")
+        # endif
+
+        bEnabled = convert.DictElementToBool(dicMod, "bEnabled", bDefault=True)
+        if bEnabled is False:
+            _Print(f"-- DISABLED: NOT applying modifier '{sModType}'")
+            continue
+        # endif
+
+        lApplyModes = dicMod.get("lApplyModes", ["INIT"])
+        if "*" not in lApplyModes and sMode not in lApplyModes:
+            _Print(f"-- {sMode}: NOT applying modifier '{sModType}'")
+            continue
+        # endif
+        _Print(f">> {sMode}: Applying modifier '{sModType}'")
+
+        funcModify = util.GetModifyFunction(sModType, "/catharsys/blender/modify/material/*:*")
+        if funcModify is None:
+            raise Exception("Modification type '{0}' not supported".format(sModType))
+        # endif
+
+        try:
+            funcModify(_matX, dicMod, sMode=sMode, dicVars=dicVars)
+        except Exception as xEx:
+            raise CAnyError_Message(sMsg=f"Error executing modifier '{sModType}'", xChildEx=xEx)
+        # endtry
+    # endfor
+#enddef
+
+############################################################################################
 def ModifyMaterials(_dicModifyMaterials, sMode="INIT", dicVars=None):
     if _dicModifyMaterials is None:
         return
@@ -61,9 +108,13 @@ def ModifyMaterials(_dicModifyMaterials, sMode="INIT", dicVars=None):
         # endif
 
         try:
-            xMaterial = bpy.data.materials.get(sMaterialId)
-            if xMaterial is None:
+            matX = bpy.data.materials.get(sMaterialId)
+            if matX is None:
                 raise Exception("Material with id '{0}' not found".format(sMaterialId))
+            # endif
+
+            if not isinstance(lModifiers, list):
+                raise CAnyError_Message(sMsg=f"Expect modifier list for material '{sMaterialId}'")
             # endif
 
             if len(lModifiers) > 0:
@@ -71,38 +122,12 @@ def ModifyMaterials(_dicModifyMaterials, sMode="INIT", dicVars=None):
             # endif
 
             for dicMod in lModifiers:
-                ison.util.data.AddLocalGlobalVars(dicMod, _dicModifyMaterials, bThrowOnDisallow=False)
-
-                sModType = dicMod.get("sDTI")
-                if sModType is None:
-                    raise CAnyError_Message(sMsg=f"Modifier for material '{xMaterial.name}' is missing 'sDTI' element")
-                # endif
-
-                bEnabled = convert.DictElementToBool(dicMod, "bEnabled", bDefault=True)
-                if bEnabled is False:
-                    _Print(f"-- DISABLED: NOT applying modifier '{sModType}'")
-                    continue
-                # endif
-
-                lApplyModes = dicMod.get("lApplyModes", ["INIT"])
-                if "*" not in lApplyModes and sMode not in lApplyModes:
-                    _Print(f"-- {sMode}: NOT applying modifier '{sModType}'")
-                    continue
-                # endif
-                _Print(f">> {sMode}: Applying modifier '{sModType}'")
-
-                funcModify = util.GetModifyFunction(sModType, "/catharsys/blender/modify/material/*:*")
-                if funcModify is None:
-                    raise Exception("Modification type '{0}' not supported".format(sModType))
-                # endif
-
-                try:
-                    funcModify(xMaterial, dicMod, sMode=sMode, dicVars=dicVars)
-                except Exception as xEx:
-                    raise CAnyError_Message(sMsg=f"Error executing modifier '{sModType}'", xChildEx=xEx)
-                # endtry
+                if isinstance(dicMod, dict):
+                    ison.util.data.AddLocalGlobalVars(dicMod, _dicModifyMaterials, bThrowOnDisallow=False)
 
             # endfor mod
+
+            ModifyMaterial(matX, lModifiers, sMode=sMode, dicVars=dicVars)
 
         except Exception as xEx:
             sMsg = f"Error executing modifiers for material '{sMaterialId}' in mode '{sMode}'"
