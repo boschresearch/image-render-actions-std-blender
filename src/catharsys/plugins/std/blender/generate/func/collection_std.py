@@ -250,8 +250,12 @@ def LoadCollections(_dicCln, **kwargs):
 
     # In case additional cameras were imported, update the camera list
     if hasattr(bpy.ops, "ac"):
-        bpy.ops.ac.update_camera_obj_list()
-        bpy.ops.ac.update_all_frustums()
+        try:
+            bpy.ops.ac.update_camera_obj_list()
+            bpy.ops.ac.update_all_frustums()
+        except Exception:
+            print("Warning: AnyCam not available to update camera list.")
+        # endtry
     # endif
 
     return dicClnObj
