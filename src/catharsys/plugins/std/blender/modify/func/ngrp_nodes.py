@@ -95,6 +95,29 @@ def _SetInOutValue(_ioX, _xValue, _sIoDir, _sIoName, _sNodeId, _sNgName):
                 )
             )
         # endtry
+
+    elif _ioX.type == "RGBA":
+        if not isinstance(_xValue, list) or len(_xValue) < 3 or len(_xValue) > 4:
+            raise RuntimeError(
+                "{} '{}' of node '{}' of node group '{}' expects a 3- or 4-vector. "
+                "Need to define a list of three or four elements.".format(
+                    _sIoDir, _sIoName, _sNodeId, _sNgName
+                )
+            )
+        # endif
+        try:
+            lValue = [convert.ToFloat(x) for x in _xValue]
+            if len(lValue) == 3:
+                lValue.append(1.0)
+            _ioX.default_value = lValue
+        except Exception as xEx:
+            raise RuntimeError(
+                "Error setting vector property '{}' of node '{}' of node group '{}'".format(
+                    _sIoName, _sNodeId, _sNgName
+                )
+            )
+        # endtry
+
     else:
         raise RuntimeError(
             "{0} of type '{1}' for {0} '{2}' of node '{3}' of node group '{4}' not supported".format(

@@ -234,3 +234,43 @@ def GenerateCollection(_dicCln, dicVars=None) -> dict[str, str]:
 
 
 # enddef
+
+############################################################################################
+@logFunctionCall
+def GenerateMaterial(_dicMat, dicVars=None) -> dict[str, str]:
+    dicMatObj = defaultdict(list)
+
+    sFilePath = None
+    dicLocals = _dicMat.get("__locals__")
+    if isinstance(dicLocals, dict):
+        sFilePath = dicLocals.get("filepath")
+    # endif
+
+    # General parameters that all generate objects configs share
+    bEnabled = convert.DictElementToBool(_dicMat, "bEnabled", bDefault=True)
+    if bEnabled:
+        try:
+            sDti = None
+            sDti = _dicMat.get("sDTI")
+            funcGenerate = util.GetGenerateFunction(sDti, "/catharsys/blender/generate/material/*:*")
+            _Print(f"Applying material generator: {sDti}")
+
+            if funcGenerate is None:
+                raise Exception("No generator function available for type '{0}'".format(sDti))
+            # endif funcGenerate
+
+            dicMatObj = funcGenerate(_dicMat, dicVars=dicVars)
+
+        except Exception as xEx:
+            sMsg = f"Error executing material generator '{sDti}'"
+            if isinstance(sFilePath, str):
+                sMsg += f"\n> See file: {sFilePath}"
+            # endif
+            raise CAnyError_Message(sMsg=sMsg, xChildEx=xEx)
+        # endtry
+    # endif
+
+    return dict(dicMatObj)
+
+
+# enddef
