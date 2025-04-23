@@ -34,6 +34,8 @@ from anyblend import object as anyobj
 from anyblend import ops_object as anyops
 from anyblend import viewlayer as anyvl
 
+from anycam import ops as camops
+
 # from anybase import convert, config
 # from anybase.cls_any_error import CAnyError_Message
 from anybase.dec.cls_paramclass import paramclass, CParamFields
@@ -140,35 +142,17 @@ def DeltaRotationEuler(_objX, _dicMod, **kwargs):
     # -- assertions on OPTIONS are be done inside paramclass
     paramMod = CDeltaRotationEulerParams(_dicMod)
 
-    # if paramMod.sUnit == "deg":
-    #     paramMod.lValue = [math.radians(x) for x in paramMod.lValue]
-    # # endif -- conversion to radians
+    if _objX.type == "CAMERA":
+        objX = camops.GetAnyCamTopObject(_objX.name)
+    else:
+        objX = _objX
+    # endif
 
     # Set delta rotation of object as a delta to the current rotation
     # Store in the rotation and not delta_rotation, as animations are
     # applied to delta rotation variable.
-    lFormerObjRot = _objX.rotation_euler
-    _objX.matrix_world = paramMod.getMatrixWorld(_objX)
+    objX.matrix_world = paramMod.getMatrixWorld(_objX)
 
-    # matObj = _objX.matrix_world
-    # matRot = mathutils.Euler(tuple(paramMod.lValue)).to_matrix().to_4x4()
-
-    # # print("location: {}".format(_objX.location))
-    # # print("matObj:\n{}".format(convert.MatrixToString(matObj)))
-    # # print("matRot:\n{}".format(convert.MatrixToString(matRot)))
-
-    # if paramMod.sFrame.lower() == "local":
-    #     _objX.matrix_world = matObj @ matRot
-    # else:
-    #     _objX.matrix_world = matRot @ matObj
-    # # endif
-
-    # print("matWorld:\n{}".format(convert.MatrixToString(_objX.matrix_world)))
-
-    # _objX.rotation_euler = (mathutils.Euler(
-    #                         mathutils.Vector(paramMod.xValue)).to_matrix()
-    #                         @ _objX.rotation_euler.to_matrix()
-    #                         ).to_euler()
     anyvl.Update()
 
 
@@ -215,7 +199,13 @@ def RotationEuler(_objX, _dicMod, **kwargs):
     # -- assertions on OPTIONS are be done inside paramclass
     paramMod = CRotationEulerParams(_dicMod)
 
-    _objX.rotation_euler = mathutils.Euler(mathutils.Vector(paramMod.lRotAngles))
+    if _objX.type == "CAMERA":
+        objX = camops.GetAnyCamTopObject(_objX.name)
+    else:
+        objX = _objX
+    # endif
+
+    objX.rotation_euler = mathutils.Euler(mathutils.Vector(paramMod.lRotAngles))
     anyvl.Update()
 
 
@@ -278,8 +268,13 @@ def DeltaLocation(_objX, _dicMod, **kwargs):
     dScale = _Metric2BlenderScale(paramMod.sUnit)
     lLoc_bu = [dScale * x for x in paramMod.lLoc]
 
-    vFormerObjLocation = _objX.location
-    _objX.location += mathutils.Vector(lLoc_bu)
+    if _objX.type == "CAMERA":
+        objX = camops.GetAnyCamTopObject(_objX.name)
+    else:
+        objX = _objX
+    # endif
+
+    objX.location += mathutils.Vector(lLoc_bu)
     anyvl.Update()
 
 
@@ -319,7 +314,13 @@ def Location(_objX, _dicMod, **kwargs):
     dScale = _Metric2BlenderScale(paramMod.sUnit)
     lLoc_bu = [dScale * x for x in paramMod.lLoc]
 
-    _objX.location = mathutils.Vector(lLoc_bu)
+    if _objX.type == "CAMERA":
+        objX = camops.GetAnyCamTopObject(_objX.name)
+    else:
+        objX = _objX
+    # endif
+
+    objX.location = mathutils.Vector(lLoc_bu)
     anyvl.Update()
 
 
@@ -357,8 +358,14 @@ def Scale(_objX, _dicMod, **kwargs):
     """
     paramMod = CScaleParams(_dicMod)
 
+    if _objX.type == "CAMERA":
+        objX = camops.GetAnyCamTopObject(_objX.name)
+    else:
+        objX = _objX
+    # endif
+
     # Set scale of object
-    _objX.scale = mathutils.Vector(paramMod.lScale)
+    objX.scale = mathutils.Vector(paramMod.lScale)
     anyvl.Update()
 
 
@@ -406,8 +413,14 @@ def DeltaScale(_objX, _dicMod, **kwargs):
     """
     paramMod = CDeltaScaleParams(_dicMod)
 
+    if _objX.type == "CAMERA":
+        objX = camops.GetAnyCamTopObject(_objX.name)
+    else:
+        objX = _objX
+    # endif
+
     # update scale of object
-    _objX.scale *= mathutils.Vector(paramMod.lScale)
+    objX.scale *= mathutils.Vector(paramMod.lScale)
     anyvl.Update()
 
 
@@ -455,11 +468,17 @@ def ScaleToSceneUnit(_objX, _dicMod, **kwargs):
     # Unit scale of current scene
     fMeterPerBU = bpy.context.scene.unit_settings.scale_length
 
+    if _objX.type == "CAMERA":
+        objX = camops.GetAnyCamTopObject(_objX.name)
+    else:
+        objX = _objX
+    # endif
+
     # Set scale of object
     if isinstance(paramMod.lScale, list):
-        _objX.scale = (paramMod.fOrigMeterPerBU / fMeterPerBU) * mathutils.Vector(paramMod.lScale)
+        objX.scale = (paramMod.fOrigMeterPerBU / fMeterPerBU) * mathutils.Vector(paramMod.lScale)
     else:
-        _objX.scale = (
+        objX.scale = (
             (paramMod.fOrigMeterPerBU / fMeterPerBU) * float(paramMod.lScale) * mathutils.Vector(1.0, 1.0, 1.0)
         )
     # endif
@@ -548,8 +567,14 @@ def SnapObjToSurf(_objX, _dicMod, **kwargs):
         raise RuntimeError("Target surface object '{}' not found".format(paramMod.sTargetObject))
     # endif
 
-    vDelta = anyobj.GetObjectDeltaToMesh(objTrg=objTrg, objX=_objX, vDir=paramMod.lSnapDir, sMode=paramMod.sSnapMode)
-    _objX.location += vDelta + paramMod.lOffset
+    if _objX.type == "CAMERA":
+        objX = camops.GetAnyCamTopObject(_objX.name)
+    else:
+        objX = _objX
+    # endif
+
+    vDelta = anyobj.GetObjectDeltaToMesh(objTrg=objTrg, objX=objX, vDir=paramMod.lSnapDir, sMode=paramMod.sSnapMode)
+    objX.location += vDelta + paramMod.lOffset
     # Need to call update, so that world matrix of object is also updated
     anyvl.Update()
 
