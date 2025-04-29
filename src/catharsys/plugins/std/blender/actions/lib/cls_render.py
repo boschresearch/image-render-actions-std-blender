@@ -517,6 +517,7 @@ class CRender:
     def _ApplyCfgCamera(self):
         # Get camera name and camera parent object if defined
         dicCameraName = cbu_cam.GetSelectedCameraName(self.dicData, bDoRaise=False)
+
         if dicCameraName is not None:
             self.sCameraName = dicCameraName.get("sCameraName")
             self.sCameraParentName = dicCameraName.get("sCameraParentName")
@@ -534,11 +535,15 @@ class CRender:
             logFunctionCall.PrintLog(f"activating: {self.sCameraName}")
             anycam.ops.ActivateCamera(self.xCtx, self.sCameraName)
         except CAnyExcept as xEx:
-            sMsg = "ERROR: Camera '{0}' cannot be activated: {1}".format(self.sCameraName, str(xEx))
+            sMsg = f"ERROR: Camera '{self.sCameraName}' cannot be activated: {xEx!s}"
             self.Print(sMsg)
             raise CAnyExcept(sMsg)
         except AttributeError:
             sMsg = "Anycam ist not installed"
+            self.Print(sMsg)
+            raise CAnyExcept(sMsg)
+        except Exception as xEx:
+            sMsg = f"EXCEPTION: Camera '{self.sCameraName}' cannot be activated: {xEx!s}"
             self.Print(sMsg)
             raise CAnyExcept(sMsg)
         # endtry
