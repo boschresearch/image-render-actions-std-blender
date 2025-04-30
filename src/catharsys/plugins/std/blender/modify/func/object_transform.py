@@ -488,6 +488,89 @@ def ScaleToSceneUnit(_objX, _dicMod, **kwargs):
 
 # enddef
 
+############################################################################################
+############################################################################################
+@paramclass
+class CPoseInterpolateLinearParams:
+    sDTI: str = (
+        CParamFields.HINT(sHint="entry point identification"),
+        CParamFields.REQUIRED("blender/modify/object/interpolate-pose/linear:1.0"),
+    )
+
+    sStartEmpty: str = (
+        CParamFields.REQUIRED(str),
+        CParamFields.HINT("name of the empty that is used as start point"),
+    )
+
+    sEndEmpty: str = (
+        CParamFields.REQUIRED(str),
+        CParamFields.HINT("name of the empty that is used as end point"),
+    )
+
+    fValue: float = (
+        CParamFields.REQUIRED(float),
+        CParamFields.HINT("relative position/orientation between start and end")
+    )
+
+# endclass
+
+
+# -------------------------------------------------------------------------------------------
+@EntryPoint(
+    CEntrypointInformation.EEntryType.MODIFIER,
+    clsInterfaceDoc=CPoseInterpolateLinearParams,
+)
+def InterpolatePoseLinear(_objX, _dicMod, **kwargs):
+    """
+    sets the location of an object
+    """
+
+    paramMod = CPoseInterpolateLinearParams(_dicMod)
+
+    objStart = bpy.data.objects.get(paramMod.sStartEmpty)
+    if objStart is None:
+        raise RuntimeError(f"Start empty object '{paramMod.sStartEmpty}' not found")
+    # endif
+
+    objEnd = bpy.data.objects.get(paramMod.sEndEmpty)
+    if objEnd is None:
+        raise RuntimeError(f"End empty object '{paramMod.sEndEmpty}' not found")
+    # endif
+
+    fValue = min(max(paramMod.fValue, 0.0), 1.0)
+
+    vStartPos, qStartRot, vStartScale = objStart.matrix_world.decompose()
+    vEndPos, qEndRot, vEndScale = objEnd.matrix_world.decompose()
+
+    vPos = vStartPos.lerp(vEndPos, fValue)
+    qRot = qStartRot.slerp(qEndRot, fValue)
+    vScale = vStartScale.lerp(vEndScale, fValue)
+
+    # print(f"vStartPos: {vStartPos}, qStartRot: {qStartRot}, vStartScale: {vStartScale}")
+    # print(f"vEndPos: {vEndPos}, qEndRot: {qEndRot}, vEndScale: {vEndScale}")
+    # print(f"vPos: {vPos}, qRot: {qRot}, vScale: {vScale}")
+
+    matPos = mathutils.Matrix.LocRotScale(vPos, qRot, vScale)
+
+    if _objX.type == "CAMERA":
+        objX = camops.GetAnyCamTopObject(_objX.name)
+    else:
+        objX = _objX
+    # endif
+
+    objParent = objX.parent
+    if objParent is not None:
+        objX.matrix_basis = objParent.matrix_world.inverted() @ matPos
+    else:
+        objX.matrix_basis = matPos
+    # endif
+
+    anyvl.Update()
+
+
+# enddef
+
+
 
 ################################################################################
 ############################################################################################
