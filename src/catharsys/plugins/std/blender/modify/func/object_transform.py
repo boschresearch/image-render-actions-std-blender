@@ -284,6 +284,154 @@ def DeltaLocation(_objX, _dicMod, **kwargs):
 ############################################################################################
 ############################################################################################
 @paramclass
+class CDeltaTransformProxyParams:
+    sDTI: str = (
+        CParamFields.HINT(sHint="entry point identification"),
+        CParamFields.REQUIRED("blender/modify/object/delta-transform/proxy:1.0"),
+        CParamFields.DEPRECATED("sType"),
+    )
+
+    sFrom: str = (
+        CParamFields.REQUIRED(str),
+        CParamFields.HINT("name of the proxy object that is used as reference as transform starting point"),
+    )
+
+    sTo: str = (
+        CParamFields.REQUIRED(str),
+        CParamFields.HINT("name of the proxy object that is used as reference as transform end point"),
+    )
+
+    fFactor: float = (
+        CParamFields.DEFAULT(1.0),
+        CParamFields.DISPLAY("factor for the transformation"),
+        CParamFields.HINT("factor for the transformation"),
+    )
+
+    bUseScale: bool = (
+        CParamFields.DEFAULT(False),
+        CParamFields.DISPLAY("use scale"),
+        CParamFields.HINT("use scale of the proxy objects"),
+    )
+
+    bUseRotation: bool = (
+        CParamFields.DEFAULT(True),
+        CParamFields.DISPLAY("use rotation"),
+        CParamFields.HINT("use rotation of the proxy objects"),
+    )
+
+    bUseTranslation: bool = (
+        CParamFields.DEFAULT(True),
+        CParamFields.DISPLAY("use translation"),
+        CParamFields.HINT("use translation of the proxy objects"),
+    )
+
+    sMode: str = CParamFields.OPTIONS(["INIT", "FRAME_UPDATE"], xDefault="INIT")
+
+
+# endclass
+
+
+# -------------------------------------------------------------------------------------------
+@EntryPoint(
+    CEntrypointInformation.EEntryType.MODIFIER,
+    clsInterfaceDoc=CDeltaTransformProxyParams,
+)
+def DeltaTransformProxy(_objX, _dicMod, **kwargs):
+    """
+    Transform an object by the difference in pose of two other proxy objects.
+    For example, if the proxy objects are two empties, the object will be transformed
+    by the difference in pose of the two empties.
+    This is useful for creating complex animations where the object needs to follow
+    the difference in pose of two other objects.
+    """
+
+    paramMod = CDeltaTransformProxyParams(_dicMod)
+
+    if _objX.type == "CAMERA":
+        objX = camops.GetAnyCamTopObject(_objX.name)
+    else:
+        objX = _objX
+    # endif
+
+    objFrom = bpy.data.objects.get(paramMod.sFrom)
+    if objFrom is None:
+        raise RuntimeError(f"Proxy 'from' object '{paramMod.sFrom}' not found")
+    # endif
+
+    objTo = bpy.data.objects.get(paramMod.sTo)
+    if objTo is None:
+        raise RuntimeError(f"Proxy 'to' object '{paramMod.sTo}' not found")
+    # endif
+
+    if paramMod.fFactor == 0.0:
+        return
+    # endif
+
+    if paramMod.fFactor < 0.0:
+        temp = objFrom
+        objFrom = objTo
+        objTo = temp
+        paramMod.fFactor = -paramMod.fFactor
+    # endif
+
+    # matTransform = objTo.matrix_world @ objFrom.matrix_world.inverted()
+    # print(f"matTransform: {matTransform}")
+
+    iCount = math.floor(paramMod.fFactor)
+    fFactor = paramMod.fFactor - iCount
+
+    # # matPartTo = objFrom.matrix_world.lerp(objTo.matrix_world, fFactor)
+    vFTrans, qFRot, vFScale = objFrom.matrix_world.decompose()
+    vTTrans, qTRot, vTScale = objTo.matrix_world.decompose()
+    # matPartTo = mathutils.Matrix.LocRotScale(vFTrans.lerp(vTTrans, fFactor), qFRot.slerp(qTRot, fFactor), vFScale.lerp(vTScale, fFactor))    
+
+    diffTrans = paramMod.fFactor * (vTTrans - vFTrans)
+
+    diffRot = qFRot.rotation_difference(qTRot)
+    qPartRot = qFRot.slerp(qTRot, fFactor)
+    diffPartRot = qFRot.rotation_difference(qPartRot)
+
+    diffScale = vTScale
+    diffScale[0] /= vFScale[0]
+    diffScale[1] /= vFScale[1]
+    diffScale[2] /= vFScale[2]
+    diffScale *= paramMod.fFactor
+
+    matTransform = mathutils.Matrix.Identity(4)
+    if paramMod.bUseTranslation:
+        matTransform = matTransform @ mathutils.Matrix.Translation(diffTrans)
+
+    if paramMod.bUseRotation:
+        for i in range(iCount):
+            matTransform = matTransform @ diffRot.to_matrix().to_4x4()
+        matTransform = matTransform @ diffPartRot.to_matrix().to_4x4()
+
+    if paramMod.bUseScale:
+        matTransform = matTransform @ mathutils.Matrix.Diagonal(diffScale).to_4x4()
+
+    # matTransform =  mathutils.Matrix.Translation(diffTrans) @ diffRot.to_matrix().to_4x4() @ mathutils.Matrix.Diagonal(diffScale).to_4x4() 
+
+    # print(f"matPartTo: {matPartTo}")
+    # print(f"objFrom.matrix_world: {objFrom.matrix_world}")
+    # print(f"objTo.matrix_world: {objTo.matrix_world}")
+    # print(f"fFactor: {fFactor}")
+    # matPartTrans = matPartTo @ objFrom.matrix_world.inverted()
+    # print(f"matPartTrans: {matPartTrans}")
+
+    # for i in range(iCount):
+    #     objX.matrix_world = matTransform @ objX.matrix_world
+    # # endfor
+    # objX.matrix_world = matPartTrans @ objX.matrix_world
+    objX.matrix_world = matTransform @ objX.matrix_world
+    
+    anyvl.Update()
+
+
+# enddef
+
+############################################################################################
+############################################################################################
+@paramclass
 class CLocationParams:
     sDTI: str = (
         CParamFields.HINT(sHint="entry point identification"),
