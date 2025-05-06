@@ -301,29 +301,35 @@ class CDeltaTransformProxyParams:
         CParamFields.HINT("name of the proxy object that is used as reference as transform end point"),
     )
 
-    fFactor: float = (
-        CParamFields.DEFAULT(1.0),
-        CParamFields.DISPLAY("factor for the transformation"),
-        CParamFields.HINT("factor for the transformation"),
-    )
+    # fFactor: float = (
+    #     CParamFields.DEFAULT(1.0),
+    #     CParamFields.DISPLAY("factor for the transformation"),
+    #     CParamFields.HINT("factor for the transformation"),
+    # )
 
-    bUseScale: bool = (
-        CParamFields.DEFAULT(False),
-        CParamFields.DISPLAY("use scale"),
-        CParamFields.HINT("use scale of the proxy objects"),
-    )
+    # bUseScale: bool = (
+    #     CParamFields.DEFAULT(False),
+    #     CParamFields.DISPLAY("use scale"),
+    #     CParamFields.HINT("use scale of the proxy objects"),
+    # )
 
-    bUseRotation: bool = (
-        CParamFields.DEFAULT(True),
-        CParamFields.DISPLAY("use rotation"),
-        CParamFields.HINT("use rotation of the proxy objects"),
-    )
+    # bUseRotation: bool = (
+    #     CParamFields.DEFAULT(True),
+    #     CParamFields.DISPLAY("use rotation"),
+    #     CParamFields.HINT("use rotation of the proxy objects"),
+    # )
 
-    bUseTranslation: bool = (
-        CParamFields.DEFAULT(True),
-        CParamFields.DISPLAY("use translation"),
-        CParamFields.HINT("use translation of the proxy objects"),
-    )
+    # bUseTranslation: bool = (
+    #     CParamFields.DEFAULT(True),
+    #     CParamFields.DISPLAY("use translation"),
+    #     CParamFields.HINT("use translation of the proxy objects"),
+    # )
+
+    # bLocalFrame: bool = (
+    #     CParamFields.DEFAULT(False),
+    #     CParamFields.DISPLAY("use local frame"),
+    #     CParamFields.HINT("use local frame of the proxy objects"),
+    # )
 
     sMode: str = CParamFields.OPTIONS(["INIT", "FRAME_UPDATE"], xDefault="INIT")
 
@@ -363,66 +369,222 @@ def DeltaTransformProxy(_objX, _dicMod, **kwargs):
         raise RuntimeError(f"Proxy 'to' object '{paramMod.sTo}' not found")
     # endif
 
-    if paramMod.fFactor == 0.0:
-        return
-    # endif
+    # if paramMod.fFactor == 0.0:
+    #     return
+    # # endif
 
-    if paramMod.fFactor < 0.0:
-        temp = objFrom
-        objFrom = objTo
-        objTo = temp
-        paramMod.fFactor = -paramMod.fFactor
-    # endif
+    # if paramMod.fFactor < 0.0:
+    #     temp = objFrom
+    #     objFrom = objTo
+    #     objTo = temp
+    #     paramMod.fFactor = -paramMod.fFactor
+    # # endif
 
-    # matTransform = objTo.matrix_world @ objFrom.matrix_world.inverted()
-    # print(f"matTransform: {matTransform}")
+    # iCount = math.floor(paramMod.fFactor)
+    # fFactor = paramMod.fFactor - iCount
 
-    iCount = math.floor(paramMod.fFactor)
-    fFactor = paramMod.fFactor - iCount
+    # matDiff = objTo.matrix_world @ objFrom.matrix_world.inverted()
+    # objX.matrix_world = matDiff @ objX.matrix_world
 
-    # # matPartTo = objFrom.matrix_world.lerp(objTo.matrix_world, fFactor)
+    vOTrans, qORot, vOScale = objX.matrix_world.decompose()
     vFTrans, qFRot, vFScale = objFrom.matrix_world.decompose()
     vTTrans, qTRot, vTScale = objTo.matrix_world.decompose()
-    # matPartTo = mathutils.Matrix.LocRotScale(vFTrans.lerp(vTTrans, fFactor), qFRot.slerp(qTRot, fFactor), vFScale.lerp(vTScale, fFactor))    
 
-    diffTrans = paramMod.fFactor * (vTTrans - vFTrans)
+    print(f"vOTrans: {vOTrans}, qORot: {qORot}, vOScale: {vOScale}")
+    print(f"vFTrans: {vFTrans}, qFRot: {qFRot}, vFScale: {vFScale}")
+    print(f"vTTrans: {vTTrans}, qTRot: {qTRot}, vTScale: {vTScale}")
 
+    diffTrans = vTTrans - vFTrans
     diffRot = qFRot.rotation_difference(qTRot)
-    qPartRot = qFRot.slerp(qTRot, fFactor)
-    diffPartRot = qFRot.rotation_difference(qPartRot)
+    vScale = mathutils.Vector((1.0, 1.0, 1.0))
+    print(f"diffTrans: {diffTrans}, diffRot: {diffRot}, vScale: {vScale}")
 
-    diffScale = vTScale
-    diffScale[0] /= vFScale[0]
-    diffScale[1] /= vFScale[1]
-    diffScale[2] /= vFScale[2]
-    diffScale *= paramMod.fFactor
+    matObject = mathutils.Matrix.LocRotScale(vOTrans, qORot, vScale)
+    print(f"matObject:\n{matObject}")
 
-    matTransform = mathutils.Matrix.Identity(4)
-    if paramMod.bUseTranslation:
-        matTransform = matTransform @ mathutils.Matrix.Translation(diffTrans)
+    matFrom = mathutils.Matrix.LocRotScale(vFTrans, qFRot, vScale)
+    print(f"matFrom:\n{matFrom}")
 
-    if paramMod.bUseRotation:
-        for i in range(iCount):
-            matTransform = matTransform @ diffRot.to_matrix().to_4x4()
-        matTransform = matTransform @ diffPartRot.to_matrix().to_4x4()
+    matTransform = mathutils.Matrix.LocRotScale(diffTrans, diffRot, vScale)
+    print(f"matTransform:\n{matTransform}")
 
-    if paramMod.bUseScale:
-        matTransform = matTransform @ mathutils.Matrix.Diagonal(diffScale).to_4x4()
+    # objX.matrix_world = matFrom @ matTransform @ matFrom.inverted() @ matObject.inverted() @ objX.matrix_world 
+    # objX.matrix_world = mathutils.Matrix.Translation(diffTrans).to_4x4() @ matObject.inverted() @ objX.matrix_world 
 
-    # matTransform =  mathutils.Matrix.Translation(diffTrans) @ diffRot.to_matrix().to_4x4() @ mathutils.Matrix.Diagonal(diffScale).to_4x4() 
+    # objX.matrix_world = matObject @ diffRot.to_matrix().to_4x4() @ mathutils.Matrix.Translation(diffTrans).to_4x4() @ matObject.inverted() @ objX.matrix_world 
+    objX.matrix_world = matObject @ matTransform @ matObject.inverted() @ objX.matrix_world 
 
-    # print(f"matPartTo: {matPartTo}")
-    # print(f"objFrom.matrix_world: {objFrom.matrix_world}")
-    # print(f"objTo.matrix_world: {objTo.matrix_world}")
-    # print(f"fFactor: {fFactor}")
-    # matPartTrans = matPartTo @ objFrom.matrix_world.inverted()
-    # print(f"matPartTrans: {matPartTrans}")
+    # objX.matrix_world = matObject @ matFrom @ matTransform @ matFrom.inverted() @ matObject.inverted() @ objX.matrix_world 
 
-    # for i in range(iCount):
-    #     objX.matrix_world = matTransform @ objX.matrix_world
-    # # endfor
-    # objX.matrix_world = matPartTrans @ objX.matrix_world
-    objX.matrix_world = matTransform @ objX.matrix_world
+    # if fFactor > 1e-6:
+    #     qPartRot = qFRot.slerp(qTRot, fFactor)
+    #     diffPartRot = qFRot.rotation_difference(qPartRot)
+    # else:
+    #     diffPartRot = None
+    # # endif 
+
+    # diffScale = vTScale
+    # diffScale[0] /= vFScale[0]
+    # diffScale[1] /= vFScale[1]
+    # diffScale[2] /= vFScale[2]
+    # diffScale *= paramMod.fFactor
+    
+    # matTrans = mathutils.Matrix.Identity(4)
+    # matTransInv = mathutils.Matrix.Identity(4)
+    # matRot = mathutils.Matrix.Identity(4)
+    # matScale = mathutils.Matrix.Identity(4)
+
+    # if paramMod.bUseTranslation:
+    #     # if paramMod.bLocalFrame: 
+    #     #     diffTrans = -diffTrans
+    #     matTrans = mathutils.Matrix.Translation(diffTrans)
+    #     matTransInv = mathutils.Matrix.Translation(-diffTrans)
+
+    # if paramMod.bUseRotation:
+    #     for i in range(iCount):
+    #         matRot @= diffRot.to_matrix().to_4x4()
+    #     if diffPartRot is not None:
+    #         matRot @= diffPartRot.to_matrix().to_4x4()
+
+    # if paramMod.bUseScale:
+    #     matScale = mathutils.Matrix.Diagonal(diffScale).to_4x4()
+
+    # if paramMod.bLocalFrame:
+    #     objX.matrix_world = objTo.matrix_world @ objFrom.matrix_world.inverted() @ objX.matrix_world
+    #     # vTrans, qRot, vScale = objX.matrix_world.decompose()
+    #     # matTrans = mathutils.Matrix.Translation(vTrans) @ matTrans
+    #     # matRot = qRot.to_matrix().to_4x4() @ matRot
+    #     # matScale = mathutils.Matrix.Diagonal(vScale).to_4x4() @ matScale
+    #     # objX.matrix_world = matTrans @ matRot @ matScale
+    # else:
+    #     objX.matrix_world = matTrans @ matRot @ matScale @ objX.matrix_world
+    # # endif
+    
+    anyvl.Update()
+
+
+# enddef
+
+############################################################################################
+############################################################################################
+@paramclass
+class CMoveToParams:
+    sDTI: str = (
+        CParamFields.HINT(sHint="entry point identification"),
+        CParamFields.REQUIRED("blender/modify/object/move/to:1.0"),
+        CParamFields.DEPRECATED("sType"),
+    )
+
+    sTarget: str = (
+        CParamFields.REQUIRED(str),
+        CParamFields.HINT("name of the target object where this object is moved to"),
+    )
+
+    sMode: str = CParamFields.OPTIONS(["INIT", "FRAME_UPDATE"], xDefault="INIT")
+
+
+# endclass
+
+
+# -------------------------------------------------------------------------------------------
+@EntryPoint(
+    CEntrypointInformation.EEntryType.MODIFIER,
+    clsInterfaceDoc=CMoveToParams,
+)
+def MoveTo(_objX, _dicMod, **kwargs):
+    """
+    Move an object to the position and orientation of a target object.
+    This is like parenting but without the parent-child relationship.
+    """
+
+    paramMod = CMoveToParams(_dicMod)
+
+    if _objX.type == "CAMERA":
+        objX = camops.GetAnyCamTopObject(_objX.name)
+    else:
+        objX = _objX
+    # endif
+
+    objTarget = bpy.data.objects.get(paramMod.sTarget)
+    if objTarget is None:
+        raise RuntimeError(f"Target object '{paramMod.sTarget}' not found")
+    # endif
+
+    vOTrans, qORot, vOScale = objX.matrix_world.decompose()
+    vTTrans, qTRot, vTScale = objTarget.matrix_world.decompose()
+    vScale = mathutils.Vector((1.0, 1.0, 1.0))
+
+    matTarget = mathutils.Matrix.LocRotScale(vTTrans, qTRot, vScale)
+    matObject = mathutils.Matrix.LocRotScale(vOTrans, qORot, vScale)
+ 
+    objX.matrix_world = matTarget @ matObject.inverted() @ mathutils.Matrix.Diagonal(vOScale).to_4x4()
+
+    
+    anyvl.Update()
+
+
+# enddef
+
+############################################################################################
+############################################################################################
+@paramclass
+class CMoveFromParams:
+    sDTI: str = (
+        CParamFields.HINT(sHint="entry point identification"),
+        CParamFields.REQUIRED("blender/modify/object/move/from:1.0"),
+        CParamFields.DEPRECATED("sType"),
+    )
+
+    sTarget: str = (
+        CParamFields.REQUIRED(str),
+        CParamFields.HINT("name of the target object which will lie at this object's current position after transformation"),
+    )
+
+    sMode: str = CParamFields.OPTIONS(["INIT", "FRAME_UPDATE"], xDefault="INIT")
+
+
+# endclass
+
+
+# -------------------------------------------------------------------------------------------
+@EntryPoint(
+    CEntrypointInformation.EEntryType.MODIFIER,
+    clsInterfaceDoc=CMoveFromParams,
+)
+def MoveFrom(_objX, _dicMod, **kwargs):
+    """
+    Move an object to the position and orientation of a target object.
+    This is like parenting but without the parent-child relationship.
+    """
+
+    paramMod = CMoveFromParams(_dicMod)
+
+    if _objX.type == "CAMERA":
+        objX = camops.GetAnyCamTopObject(_objX.name)
+    else:
+        objX = _objX
+    # endif
+
+    objTarget = bpy.data.objects.get(paramMod.sTarget)
+    if objTarget is None:
+        raise RuntimeError(f"Target object '{paramMod.sTarget}' not found")
+    # endif
+
+    vOTrans, qORot, vOScale = objX.matrix_world.decompose()
+    vTTrans, qTRot, vTScale = objTarget.matrix_world.decompose()
+
+    vScale = mathutils.Vector((1.0, 1.0, 1.0))
+    matObject = mathutils.Matrix.LocRotScale(vOTrans, qORot, vScale)
+    matTarget = mathutils.Matrix.LocRotScale(vTTrans, qTRot, vScale)
+
+    # matDiff = matObject.inverted() @ matTarget
+    matDiff = matTarget.inverted() @ matObject
+    vTrans, qRot, vScale = matDiff.decompose()
+
+    print(f"vOTrans: {vOTrans}, qORot: {qORot}, vOScale: {vOScale}")
+    print(f"vTTrans: {vTTrans}, qTRot: {qTRot}, vTScale: {vTScale}")
+
+    objX.matrix_world = matObject @ matTarget.inverted() @ objX.matrix_world
     
     anyvl.Update()
 
