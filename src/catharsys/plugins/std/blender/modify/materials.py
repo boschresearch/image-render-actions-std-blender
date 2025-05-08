@@ -75,7 +75,7 @@ def ModifyMaterial(_matX, _lMods, sMode="INIT", dicVars=None):
             _Print(f"-- {sMode}: NOT applying modifier '{sModType}'")
             continue
         # endif
-        _Print(f">> {sMode}: Applying modifier '{sModType}'")
+        _Print(f">> {sMode}: Applying modifier '{sModType}' to material: {_matX.name}")
 
         funcModify = util.GetModifyFunction(sModType, "/catharsys/blender/modify/material/*:*")
         if funcModify is None:

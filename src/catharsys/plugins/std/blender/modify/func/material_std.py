@@ -28,11 +28,19 @@
 
 import os
 import re
-import bpy
+try:
+    import bpy
+    from anyblend import util
+    from . import ngrp_nodes
+    from .. import materials
 
-from anybase import path
-from anyblend import util
-from . import ngrp_nodes
+    g_bInBlenderContext = True
+except Exception:
+    g_bInBlenderContext = False  # don't worry, but don't call anything from here
+
+import ison
+from anybase import path, assertion, convert
+
 
 ##################################################################################
 def _DoSetTexture(_xNode, _sImgId, _sRemoveImgId):
@@ -133,11 +141,11 @@ def SetTexturesFromFolder(_matX, _dicMod, **kwargs):
             # endtry
         # endif
 
-        if xNode.image is None:
-            sFileOrigTex = None
-        else:
-            sFileOrigTex = xNode.image.name
-        # endif
+        # if xNode.image is None:
+        #     sFileOrigTex = None
+        # else:
+        #     sFileOrigTex = xNode.image.name
+        # # endif
 
         _DoSetTexture(xNode, sFileTex, None)
     # endfor
@@ -162,30 +170,39 @@ def SwapMaterial(_matX, _dicMod, **kwargs):
         if bMatchedName:
             for (slotId, materialSlot) in enumerate(objectX.material_slots):
                 if materialSlot.name == sDestMaterialName:
-
-                    # prevent old material from being purged accidentally
-                    # between this call and the call of the revert modifier
-                    bResetFakeUser = not materialSlot.material.use_fake_user
-
-                    if sMode == "INIT":
-
-                        def RevertModifier(objectX, slotId, material, bResetFakeUser):
-                            def func():
-                                _DoSetMaterial(objectX, slotId, material)
-                                if bResetFakeUser:
-                                    material.use_fake_user = False
-
-                            # enddef
-                            return func
-
-                        # enddef
-
-                    # endif
-
                     materialSlot.material.use_fake_user = True
-
                     _DoSetMaterial(objectX, slotId, _matX)
+                    # print(objectX, slotId, _matX)
+                # endif
+            # endfor
+        # endif
+    # endfor
 
+
+# enddef
+
+##################################################################################
+def ReplaceMaterial(_matX, _dicMod, **kwargs):
+
+    sMode = kwargs.get("sMode", "INIT")
+    sNewMaterialName = _dicMod.get("sMaterial")
+    if sNewMaterialName is None:
+        raise Exception("Name of new material not given in 'sMaterial' element")
+
+    matNew = bpy.data.materials.get(sNewMaterialName)
+    if matNew is None:
+        raise Exception("Material '{0}' not found in Blender data".format(sNewMaterialName))
+    # endif
+
+    for objectX in bpy.data.objects:
+        # replace in all objects
+        # TODO make selectable by regexp or list of object names
+        bMatchedName = True
+        if bMatchedName:
+            for (slotId, materialSlot) in enumerate(objectX.material_slots):
+                if materialSlot.name == _matX.name:
+                    materialSlot.material.use_fake_user = True
+                    _DoSetMaterial(objectX, slotId, matNew)
                     # print(objectX, slotId, _matX)
                 # endif
             # endfor
@@ -206,3 +223,54 @@ def SetNodeValues(_matX, _dicMod, **kwargs):
 
 
 # enddef
+
+##################################################################################
+def CopyMaterial(_matX, _dicMod, **kwargs):
+    """Copy a material to a new material and optionally modify it.
+
+    Parameters
+    ----------
+    _matX : bpy.types.Material
+        Material to be copied
+    _dicMod : dict
+        Attributes to be modified
+
+    Raises
+    ------
+    Exception
+        Raise an exception if anything fails during modification of the object
+
+    """
+    assertion.IsTrue(g_bInBlenderContext)
+
+    sMode = kwargs.get("sMode", "INIT")
+    dicVars = kwargs.get("dicVars", {})
+
+    print("Copy Material")
+    sName: str = convert.DictElementToString(_dicMod, "sName")
+    matNew: bpy.types.Material = bpy.data.materials.get(sName)
+    if matNew is not None:
+        raise RuntimeError(f"Material with name '{sName}' already exists in Blender data")
+    # endif
+    print(f"New name: {sName}")
+
+    lModifiers: list | None = _dicMod.get("lModifiers")
+    if lModifiers is not None:
+        if not isinstance(lModifiers, list):
+            raise RuntimeError(f"Element 'lModifiers' must be of type 'list' in object modifier '{_dicMod.get('sDTI')}'")
+
+        for dicModFunc in lModifiers:
+            if isinstance(dicModFunc, str):
+                continue
+            elif isinstance(dicModFunc, dict):
+                ison.util.data.AddLocalGlobalVars(dicModFunc, _dicMod, bThrowOnDisallow=False)
+            else:
+                raise RuntimeError("Invalid object type in 'lModifiers' list")
+            # endif
+        # endfor
+    # endif 
+
+    matNew = _matX.copy()
+    matNew.name = sName
+    print(f"New material: {matNew.name}")
+    materials.ModifyMaterial(matNew, lModifiers, sMode=sMode, dicVars=dicVars)

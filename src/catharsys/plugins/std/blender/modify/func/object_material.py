@@ -26,32 +26,32 @@
 # </LICENSE>
 ###
 
-import json
+# import json
 import re
 
 try:
     import _bpy
     import bpy
-    import mathutils
-    from pathlib import Path
-    from anyblend.cls_boundbox import CBoundingBox
-    from anyblend import object as anyobj
-    from anyblend import ops_object as objops
-    from anyblend import collection as anycln
-    from anyblend import viewlayer as anyvl
-    from anycam import ops as camops
-    from anybase import config, convert, path
+    # import mathutils
+    # from pathlib import Path
+    # from anyblend.cls_boundbox import CBoundingBox
+    # from anyblend import object as anyobj
+    # from anyblend import ops_object as objops
+    # from anyblend import collection as anycln
+    # from anyblend import viewlayer as anyvl
+    # from anycam import ops as camops
+    # from anybase import config, convert, path
+    from .. import materials
 
     g_bInBlenderContext = True
 except Exception:
     g_bInBlenderContext = False  # don't worry, but don't call anything from here
 
-from anybase import assertion
-from anybase.cls_any_error import CAnyError, CAnyError_Message
+from anybase import assertion, convert
+from anybase.cls_any_error import CAnyError_Message
 
 import ison
 from anybase.cls_anycml import CAnyCML
-from .. import materials
 
 
 
