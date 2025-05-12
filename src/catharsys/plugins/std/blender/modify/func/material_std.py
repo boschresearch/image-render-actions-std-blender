@@ -184,14 +184,56 @@ def SwapMaterial(_matX, _dicMod, **kwargs):
 ##################################################################################
 def ReplaceMaterial(_matX, _dicMod, **kwargs):
 
+    assertion.IsTrue(g_bInBlenderContext)
     sMode = kwargs.get("sMode", "INIT")
-    sNewMaterialName = _dicMod.get("sMaterial")
+    dicVars = kwargs.get("dicVars", {})
+
+    sNewMaterialName = convert.DictElementToString(_dicMod, "sMaterial")
     if sNewMaterialName is None:
         raise Exception("Name of new material not given in 'sMaterial' element")
 
     matNew = bpy.data.materials.get(sNewMaterialName)
     if matNew is None:
         raise Exception("Material '{0}' not found in Blender data".format(sNewMaterialName))
+    # endif
+
+    bCopyMaterial: bool = False
+
+    lModifiers: list | None = _dicMod.get("lModifiers")
+    if lModifiers is not None:
+        if not isinstance(lModifiers, list):
+            raise RuntimeError(f"Element 'lModifiers' must be of type 'list' in object modifier '{_dicMod.get('sDTI')}'")
+
+        if len(lModifiers) > 0:
+            bCopyMaterial = True
+
+        for dicModFunc in lModifiers:
+            if isinstance(dicModFunc, str):
+                continue
+            elif isinstance(dicModFunc, dict):
+                ison.util.data.AddLocalGlobalVars(dicModFunc, _dicMod, bThrowOnDisallow=False)
+            else:
+                raise RuntimeError("Invalid object type in 'lModifiers' list")
+            # endif
+        # endfor
+    # endif 
+
+    bCopy = convert.DictElementToBool(_dicMod, "bCopyMaterial", bDefault=False)
+    bCopyMaterial = bCopyMaterial or bCopy
+
+    if bCopyMaterial:
+        matNew = matNew.copy()
+        iMatCopyIdx = 1
+        while True:
+            sName = f"{matNew.name}.copy.{iMatCopyIdx:03d}"
+            if sName not in bpy.data.materials:
+                matNew.name = sName
+                break
+            # endif
+            iMatCopyIdx += 1
+        # endwhile
+
+        materials.ModifyMaterial(matNew, lModifiers, sMode=sMode, dicVars=dicVars)
     # endif
 
     for objectX in bpy.data.objects:
@@ -246,13 +288,13 @@ def CopyMaterial(_matX, _dicMod, **kwargs):
     sMode = kwargs.get("sMode", "INIT")
     dicVars = kwargs.get("dicVars", {})
 
-    print("Copy Material")
+    # print("Copy Material")
     sName: str = convert.DictElementToString(_dicMod, "sName")
     matNew: bpy.types.Material = bpy.data.materials.get(sName)
     if matNew is not None:
         raise RuntimeError(f"Material with name '{sName}' already exists in Blender data")
     # endif
-    print(f"New name: {sName}")
+    # print(f"New name: {sName}")
 
     lModifiers: list | None = _dicMod.get("lModifiers")
     if lModifiers is not None:
