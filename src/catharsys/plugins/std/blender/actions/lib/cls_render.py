@@ -269,6 +269,7 @@ class CRender:
         self.bApplyAnnotation: bool = False
         self.sAnnotationType: str = None
         self.bLabelEvalBoxes2d: bool = False
+        self.bLabelAllowFovBoxes2d: bool = False
 
         # Point Clouds
         self.xPclSet: anypoints.CPointCloudSet = None
@@ -702,6 +703,7 @@ class CRender:
         self.bApplyAnnotation = False
         self.sAnnotationType = None
         self.bLabelEvalBoxes2d = False
+        self.bLabelAllowFovBoxes2d = False
 
         ###############################################################
         # Apply render settings from render output list and
@@ -739,6 +741,7 @@ class CRender:
                 self.bApplyAnnotation = True
                 self.sAnnotationType = "LABEL"
                 self.bLabelEvalBoxes2d = convert.DictElementToBool(_dicRndOut, "bEvalBoxes2d", bDefault=False)
+                self.bLabelAllowFovBoxes2d = convert.DictElementToBool(_dicRndOut, "bAllowFovBoxes2d", bDefault=False)
 
             elif self.xRndOutType.sSpecificType == NsSpecificTypesRenderOut.anytruth_pos3d:
                 self.bApplyAnnotation = True
@@ -1013,6 +1016,7 @@ class CRender:
                 sFilename="Exp_#######",
                 bApplyFilePathsOnly=_bApplyFilePathsOnly,
                 bEvalBoxes2d=self.bLabelEvalBoxes2d,
+                bAllowFovBoxes2d=self.bLabelAllowFovBoxes2d,
             )
         # endif
 
@@ -1045,6 +1049,7 @@ class CRender:
         _sFrameNamePattern: Optional[str] = None,
         _bUpdateLabelData3d: bool = True,
         _bEvalBoxes2d: bool = False,
+        _bAllowFovBoxes2d: bool = False,
     ):
         if _sFrameNamePattern is not None:
             sFrameNamePattern = _sFrameNamePattern
@@ -1065,6 +1070,7 @@ class CRender:
                 bUpdateLabelData3d=_bUpdateLabelData3d,
                 bEvalBoxes2d=_bEvalBoxes2d,
                 _pathExData=pathExData,
+                bAllowFovBoxes2d=_bAllowFovBoxes2d,
             )
 
         elif self.sRenderOutType == "anytruth/pos3d":
