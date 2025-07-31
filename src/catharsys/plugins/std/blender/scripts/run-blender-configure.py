@@ -131,11 +131,20 @@ for dicAddOn in lProcAddOns:
     if dicPref is not None:
         print(">> Setting preferences for addon '{}':".format(sName))
         xAddOn = bpy.context.preferences.addons[sName]
-        for sKey, sValue in dicPref.items():
-            print(">>>> {} => {}".format(sKey, sValue))
-            xAddOn.preferences[sKey] = sValue
-        # endfor
-    # endif
+        xPrefs = xAddOn.preferences
+        if bpy.app.version >= (4, 0, 0):
+            for sKey, sValue in dicPref.items():
+                print(">>>> {} => {}".format(sKey, sValue))
+                setattr(xPrefs, sKey, sValue)
+            # endfor
+        else:
+            # For Blender 3.x, we need to set preferences differently
+            # as the preferences are not directly accessible as attributes.
+            for sKey, sValue in dicPref.items():
+                print(">>>> {} => {}".format(sKey, sValue))
+                xAddOn.preferences[sKey] = sValue
+            # endfor
+        # endif
 # endfor
 
 bpy.ops.wm.save_userpref()

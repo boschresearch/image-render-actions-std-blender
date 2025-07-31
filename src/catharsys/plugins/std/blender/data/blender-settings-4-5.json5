@@ -1,0 +1,22 @@
+{
+    sDTI: "/catharsys/blender/settings:1.0",
+
+    mPreferences: {
+        inputs: {
+            ndof_panx_invert_axis: false,
+            ndof_pany_invert_axis: false,
+            ndof_panz_invert_axis: false,
+            ndof_rotx_invert_axis: false,
+            ndof_roty_invert_axis: false,
+            ndof_rotz_invert_axis: false,
+            ndof_zoom_direction: "NDOF_ZOOM_FORWARD",
+            ndof_navigation_mode: "OBJECT",
+            ndof_lock_camera_pan_zoom: true,
+            use_zoom_to_mouse: true,
+        }
+    }
+}
+
+
+
+

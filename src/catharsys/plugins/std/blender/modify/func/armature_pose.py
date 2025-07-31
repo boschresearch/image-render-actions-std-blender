@@ -26,13 +26,15 @@
 # </LICENSE>
 ###
 
+from typing import Any
 import bpy
 import re
+from anybase import convert
 
 
 ############################################################################################
 def ApplyPoseFromFile(
-    armature_dst, sBlenderFilename, sPosename, lBones=".*", fWeight=1.0, bMirror=False
+    armature_dst, sBlenderFilename, sPosename, lBones=[".*"], fWeight=1.0, bMirror=False
 ):
 
     with bpy.data.libraries.load(sBlenderFilename, link=False) as (data_from, data_to):
@@ -95,16 +97,17 @@ def ApplyPoseFromFile(
 # enddef
 
 ############################################################################################
-def Posing(_objX, _dicMod, **kwargs):
+def Posing(_objX: bpy.types.Object, _dicMod: dict[str, Any], **kwargs: Any) -> None:
 
     if "lPoseFiles" in _dicMod:
+        mPoseConfig: dict[str, Any]
         for mPoseConfig in _dicMod["lPoseFiles"]:
             if "sBlenderFilename" not in mPoseConfig:
                 raise Exception(
                     "sBlenderFilename not given for posing of '{}'".format(_objX.name)
                 )
             # endif
-            sBlenderFilename = mPoseConfig["sBlenderFilename"]
+            sBlenderFilename: str = convert.DictElementToString(mPoseConfig, "sBlenderFilename")
 
             if "sPosename" not in mPoseConfig:
                 raise Exception(
@@ -112,16 +115,20 @@ def Posing(_objX, _dicMod, **kwargs):
                 )
             # endif
 
-            sPosename = mPoseConfig["sPosename"]
+            sPosename: str = convert.DictElementToString(mPoseConfig, "sPosename")
 
-            lBones = mPoseConfig.get("lBones")
-            fWeight = mPoseConfig.get("fWeight", 1.0)
-            bMirror = mPoseConfig.get("bMirror", False)
+            lBones: list[str] = convert.DictElementToStringList(mPoseConfig, "lBones", lDefault=[".*"])
+            fWeight: float = convert.DictElementToFloat(mPoseConfig, "fWeight", 1.0)
+            bMirror: bool = convert.DictElementToBool(mPoseConfig, "bMirror", False)
 
             ApplyPoseFromFile(
                 _objX, sBlenderFilename, sPosename, lBones, fWeight, bMirror
             )
         # endfor
+    else:
+        raise Exception(
+            f"No 'lPoseFiles' element given for posing of '{_objX.name}'"
+        )
     # endif
 
 
